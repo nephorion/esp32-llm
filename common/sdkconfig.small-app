@@ -1,0 +1,7 @@
+# Use the standard 16 MB layout (common/partitions/16mb_app512k.csv). Projects that do not
+# ship their own data partition list this, so flashing them can never overwrite another
+# project's data at 0x90000 and above (for example the MiniLM model).
+# The path is relative to the project folder (every project sits two levels below the root).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="../../common/partitions/16mb_app512k.csv"
+CONFIG_PARTITION_TABLE_FILENAME="../../common/partitions/16mb_app512k.csv"

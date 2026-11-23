@@ -1,0 +1,9 @@
+# Standard flash layout for a 16 MB ESP32-S3 project that has no data of its own.
+# The app is limited to 512 KB and ends at 0x90000. Everything from 0x90000 up is left
+# untouched, so flashing one of these projects never overwrites MiniLM's model there.
+# (ESP-IDF's default table gives the app 1 MB, which runs over 0x90000.)
+#
+# Name,     Type, SubType, Offset,   Size
+nvs,        data, nvs,     0x9000,   0x6000
+phy_init,   data, phy,     0xf000,   0x1000
+factory,    app,  factory, 0x10000,  0x80000

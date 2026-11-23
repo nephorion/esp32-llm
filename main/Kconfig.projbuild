@@ -1,8 +1,0 @@
-menu "LED"
-    config LED_GPIO
-        int "LED GPIO"
-        default 48
-    config LED_IS_RGB
-        bool "LED is an addressable RGB (WS2812) LED"
-        default y
-endmenu

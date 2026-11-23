@@ -1,0 +1,8 @@
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+# One embedding takes seconds of solid number crunching on core 0; don't let the
+# idle-task watchdog reset the chip while we do it.
+CONFIG_ESP_TASK_WDT_EN=n
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
