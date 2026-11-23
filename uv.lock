@@ -233,6 +233,7 @@ name = "esp32-llm"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "esp32tools" },
     { name = "esptool" },
     { name = "huggingface-hub" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -245,6 +246,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "esp32tools", editable = "common/python" },
     { name = "esptool", specifier = ">=5.6.0" },
     { name = "huggingface-hub", specifier = ">=2.4.0" },
     { name = "numpy", specifier = ">=2.4.6" },
@@ -253,6 +255,17 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.8.0" },
     { name = "wordfreq", specifier = ">=3.1.1" },
 ]
+
+[[package]]
+name = "esp32tools"
+version = "0.1.0"
+source = { editable = "common/python" }
+dependencies = [
+    { name = "pyserial" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyserial", specifier = ">=3.5" }]
 
 [[package]]
 name = "esptool"

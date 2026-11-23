@@ -1,0 +1,16 @@
+menu "Board LED"
+    config LED_GPIO
+        int "GPIO number of the on-board LED"
+        default 48
+        help
+            The pin the LED is wired to. Most ESP32-S3 dev boards put an addressable RGB LED
+            on GPIO48 (older revisions use GPIO38). Check your board's silkscreen or schematic.
+
+    config LED_IS_RGB
+        bool "The LED is an addressable RGB (WS2812) LED"
+        default y
+        help
+            Say yes for the colour "NeoPixel" style LED found on most dev boards (driven
+            with a special one-wire signal). Say no for a plain LED that is simply
+            switched on and off by the pin.
+endmenu

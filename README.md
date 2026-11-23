@@ -38,7 +38,8 @@ on the real chip, with timing charts drawn in your terminal.
 - **A [Claude Code](https://claude.com/claude-code) skill** (`.claude/skills/minilm/`) so an AI
   assistant can query the board directly.
 - **An activity LED** that blinks while the board is working.
-- **A benchmark project** for memory and IO speed, and a small LED on/off example.
+- **A benchmark project** for memory and IO speed, a small LED on/off example, and a template
+  for starting new projects.
 
 ## Why it is interesting
 
@@ -63,27 +64,34 @@ The full steps (serial permissions, ESP-IDF install) are in **[docs/SETUP.md](do
 ```bash
 uv sync                                  # Python tools
 . ~/esp/esp-idf/export.sh                # ESP-IDF v5.4, once per shell
-cd minilm
+cd projects/minilm
 make download model build flash-model flash    # fetch the model, convert it, build, flash
 make repl                                # talk to the board
 ```
 
-Then read the tutorial: **[minilm/README.md](minilm/README.md)**. It covers how embeddings
+Then read the tutorial: **[projects/minilm/README.md](projects/minilm/README.md)**. It covers how embeddings
 work, a guided tour of the C code, the measurements, and a talk outline.
 
 ## Repo layout
 
+Each project is self-contained in its own folder under `projects/`. Anything two projects
+could share lives in `common/`.
+
 | Folder | What it is |
 |---|---|
-| [`minilm/`](minilm/README.md) | **The main project**: MiniLM-L6 on the chip, with the Python tools and the tutorial |
-| `bench/` | Memory and GPIO speed benchmark (results in `results/`) |
-| `main/` | LED on/off over serial, the first example |
-| `tools/` | Host scripts for `main/` and `bench/` |
+| [`projects/minilm/`](projects/minilm/README.md) | **The main project**: MiniLM-L6 on the chip, with its Python tools and the tutorial |
+| `projects/bench/` | Memory and GPIO speed benchmark (results in `projects/bench/results/`) |
+| `projects/led/` | LED on/off over serial, the first example |
+| `projects/_template/` | Starting point for a new project: `make new NAME=myproject` |
+| `common/` | Shared ESP-IDF components, build rules, flash layout and the Python serial helper |
 | `.claude/skills/minilm/` | Claude Code skill for querying the board |
-| [`docs/SETUP.md`](docs/SETUP.md) | Board capabilities, prerequisites, troubleshooting |
+| [`docs/SETUP.md`](docs/SETUP.md) | Board capabilities, prerequisites, usage, troubleshooting |
 
-Each project folder is its own ESP-IDF project. **Flashing `main/` or `bench/` overwrites part
-of the model partition**, so run `make flash-model` in `minilm/` again afterwards.
+Run any project from the root with `make p=<project> <target>`, for example
+`make p=minilm flash`. To start something new, `make new NAME=myproject` copies the template,
+which already speaks the same serial protocol as the host tools. After flashing a different
+project, run `make flash` in `projects/minilm/` to restore its partition table. The model
+itself is never overwritten.
 
 ## Limits
 

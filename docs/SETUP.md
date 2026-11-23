@@ -96,22 +96,28 @@ Expected: `Connected to ESP32-S3`. If it fails, hold **BOOT**, tap **RESET**, re
 
 ## Usage
 
-| Command        | What it does                                              |
-| -------------- | --------------------------------------------------------- |
-| `make build`   | Sets target to esp32s3 and builds (needs ESP-IDF exported) |
-| `make flash`   | Flashes the build to the board                            |
-| `make monitor` | Serial monitor (exit with `Ctrl-]`)                       |
-| `make chip-info` | Reads chip ID and flash info with esptool               |
+Every project under `projects/` has its own Makefile. Run `make` inside the project folder, or
+from the repository root with `p=<project>`:
+
+| Command | What it does |
+| ------- | ------------ |
+| `make p=minilm build` | Sets the target to esp32s3 and builds (needs ESP-IDF exported) |
+| `make p=minilm flash` | Flashes the firmware to the board |
+| `make p=minilm monitor` | Serial monitor (exit with `Ctrl-]`) |
+| `make p=minilm menuconfig` | Change settings, for example the LED pin |
+| `make chip-info` | Reads chip ID and flash info with esptool |
+| `make list` | Lists the projects |
+| `make new NAME=foo` | Creates `projects/foo` from `projects/_template` |
 
 Override the port with `make flash PORT=/dev/ttyUSB0`.
 
 ### Talking to the board from Python
 
 ```python
-import serial
-with serial.Serial("/dev/ttyACM0", 115200, timeout=1) as s:
-    s.write(b"hello\n")
-    print(s.readline())
+from esp32tools import Board          # shared helper, see common/python/
+b = Board("/dev/ttyACM0")             # opens the port and waits for the board's READY
+print(b.command("ping"))              # sends a line, returns the reply lines before OK
+b.close()
 ```
 
 Only one program can hold the port at a time, so close `make monitor` first.
@@ -126,17 +132,28 @@ Only one program can hold the port at a time, so close `make monitor` first.
 | `Device busy`                     | Another program has the port open.                                  |
 | `idf.py: command not found`       | Run `. ~/esp/esp-idf/export.sh` in this shell.                      |
 
-## Projects in this repo (details)
+## Repository layout
 
-| Folder | What it is |
-|---|---|
-| `main/` | LED on/off over serial (`tools/led_repl.py`) |
-| `bench/` | Memory and GPIO speed benchmark (`tools/run_bench.py`, results in `results/`) |
-| `minilm/` | **MiniLM-L6 sentence embeddings on the chip. Start with [`minilm/README.md`](minilm/README.md)** |
+```
+common/                 shared by every project
+  components/board_led/   on-board LED + the "busy" blinker (ESP-IDF component)
+  mk/esp.mk               shared build / flash / monitor rules
+  partitions/             standard flash layout (512 KB app, nothing above 0x90000)
+  sdkconfig.common        settings every project shares
+  python/esp32tools/      generic serial helper (Board)
+projects/               one self-contained ESP-IDF project per folder
+  minilm/                 MiniLM-L6 on the chip (start with its README)
+  bench/                  memory and GPIO speed benchmark
+  led/                    LED on/off over serial
+  _template/              what `make new NAME=foo` copies
+```
 
-Each folder is its own ESP-IDF project, so build and flash from inside it.
+A project pulls in shared code by adding `set(EXTRA_COMPONENT_DIRS ../../common/components)` to
+its `CMakeLists.txt` and listing the component in `REQUIRES`. See `projects/_template` for a
+complete minimal example.
 
-**Warning:** `main/` and `bench/` use the default partition table, which puts a 1 MB app at
-`0x10000`. That overlaps the start of the `minilm` model (`0x90000`). If you flash `main/` or
-`bench/`, run `make flash-model` in `minilm/` again afterwards. Flashing `minilm` itself only
-replaces its small firmware and leaves the model alone.
+**Flash layout.** `led`, `bench` and new projects use the standard table in
+`common/partitions/`, whose app ends at `0x90000`, so flashing them never overwrites the
+MiniLM model. They do replace the partition table, though. After flashing another project, run
+`make flash` in `projects/minilm/` to get MiniLM's table back. The model does not need to be
+written again.

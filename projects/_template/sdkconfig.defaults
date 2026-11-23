@@ -1,0 +1,4 @@
+# Settings for this project only. Shared ones are in ../../common/sdkconfig.common, and
+# sdkconfig.small-app gives the standard 512 KB app partition. If this project needs its own
+# flash layout (for example a big data partition), copy MiniLM's partitions.csv and
+# replace the small-app line in CMakeLists.txt.

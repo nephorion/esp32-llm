@@ -1,12 +1,12 @@
 ---
 name: minilm
 description: Query the MiniLM-L6 sentence-embedding model running on the ESP32-S3 board over serial. Use it to measure how similar in meaning two texts are (similarity/distance), get a text's embedding, see how text is split into word pieces, read model/memory info, or get a per-phase timing breakdown (arithmetic vs flash weight fetch etc.). Trigger on requests like "how similar are these sentences on the board", "run this through the ESP32", "embed this", "test the model on the chip", "what is the inference latency".
-allowed-tools: Bash(uv run python minilm/tools/minilm_cli.py:*), Bash(fuser -v /dev/ttyACM0:*)
+allowed-tools: Bash(uv run python projects/minilm/tools/minilm_cli.py:*), Bash(fuser -v /dev/ttyACM0:*)
 ---
 
 # MiniLM on the ESP32-S3
 
-The board runs `all-MiniLM-L6-v2` (int8, pruned vocabulary) in C. `minilm/tools/minilm_cli.py`
+The board runs `all-MiniLM-L6-v2` (int8, pruned vocabulary) in C. `projects/minilm/tools/minilm_cli.py`
 sends one command over USB serial and prints the result. Everything runs on the chip, so
 results are real device output, not a PC simulation.
 
@@ -16,7 +16,7 @@ Always run from the repo root, and prefer `--json` so you can read exact numbers
 
 ```bash
 cd <repo root>   # the folder containing minilm/
-uv run python minilm/tools/minilm_cli.py --json dist "text a" "text b"
+uv run python projects/minilm/tools/minilm_cli.py --json dist "text a" "text b"
 ```
 
 | Need | Command |
@@ -33,12 +33,12 @@ Batch example (one connection, any number of pairs):
 
 ```bash
 printf 'the cat sat | a kitten rested\nreset my password | I forgot my login\n' \
-  | uv run python minilm/tools/minilm_cli.py --json batch
+  | uv run python projects/minilm/tools/minilm_cli.py --json batch
 ```
 
 ## History, statistics and charts (no board needed)
 
-Every call through the CLI or REPL is appended to `minilm/history/calls.jsonl` (one JSON line
+Every call through the CLI or REPL is appended to `projects/minilm/history/calls.jsonl` (one JSON line
 per call: time, source, command, texts, token counts, similarity, full timing). These commands
 read it back and do NOT open the serial port, so they work even while the user has a REPL open:
 
@@ -113,11 +113,12 @@ NOT kill their process.
 
 ## Guardrails
 
-- Only the read-only commands above are in scope. **Never** run `make flash`, `make
-  flash-model`, `idf.py flash` or `esptool` from this skill: flashing the `main/` or `bench/`
-  firmware overwrites part of the model partition, and flashing the model writes ~15 MB of
-  flash. Only do those if the user explicitly asks.
+- Only the read-only commands above are in scope. **Never** run `make flash`,
+  `make flash-model`, `idf.py flash` or `esptool` from this skill: flashing replaces the
+  firmware on the board (and `flash-model` writes ~15 MB of flash). Only do those if the user
+  explicitly asks. If the board was last flashed with another project, MiniLM needs
+  `make flash` in `projects/minilm/` (the model itself survives).
 - Do not run several CLI calls at once; they share one serial port (the second one fails with
   exit 3). Use `batch` instead.
-- The numpy reference (`uv run python minilm/tools/minilm_ref.py dist "a" "b"`) gives the same
+- The numpy reference (`uv run python projects/minilm/tools/minilm_ref.py dist "a" "b"`) gives the same
   answer on the PC without the board, and is a good cross-check if the board is unavailable.

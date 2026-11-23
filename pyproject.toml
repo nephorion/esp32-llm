@@ -3,6 +3,7 @@ name = "esp32-llm"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    "esp32tools",
     "esptool>=5.6.0",
     "huggingface-hub>=2.4.0",
     "numpy>=2.4.6",
@@ -11,3 +12,6 @@ dependencies = [
     "safetensors>=0.8.0",
     "wordfreq>=3.1.1",
 ]
+
+[tool.uv.sources]
+esp32tools = { path = "common/python", editable = true }
