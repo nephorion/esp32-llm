@@ -19,7 +19,7 @@ C firmware (ESP-IDF) for an **ESP32-S3**, flashed over USB serial. Python (pyser
 
 Notes:
 - Fuse-derived values come from `espefuse summary` and `esptool flash-id`. SRAM size and SIMD come from the ESP32-S3 datasheet, not from the chip query.
-- The PSRAM is **octal** (AP Memory, 64 Mbit, 40 MHz), confirmed by booting with `CONFIG_SPIRAM_MODE_OCT=y` in `sdkconfig.defaults`. The eFuses alone don't say.
+- The PSRAM is **octal** (AP Memory, 64 Mbit, 40 MHz), confirmed by booting with `CONFIG_SPIRAM_MODE_OCT=y` in `projects/bench/sdkconfig.defaults`. The eFuses alone don't say.
 - Boot reports about 386 KB of internal heap free and 8 MB of PSRAM free.
 - The board enumerates as a QinHeng `1a86:55d3` USB serial device on `/dev/ttyACM0`.
 - Re-run the checks any time with `make chip-info`.

@@ -15,7 +15,7 @@ results are real device output, not a PC simulation.
 Always run from the repo root, and prefer `--json` so you can read exact numbers:
 
 ```bash
-cd <repo root>   # the folder containing minilm/
+cd <repo root>   # the folder containing projects/
 uv run python projects/minilm/tools/minilm_cli.py --json dist "text a" "text b"
 ```
 

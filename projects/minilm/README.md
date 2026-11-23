@@ -316,6 +316,7 @@ numpy. It reads the same `model.bin`, so it also tests the file format. **Read t
 first.** The C code is a line-for-line translation.
 
 ```bash
+# from projects/minilm/
 uv run --project ../.. python tools/minilm_ref.py dist "a cat sat on the mat" "stock markets fell"
 ```
 
