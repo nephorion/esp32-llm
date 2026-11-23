@@ -16,8 +16,8 @@ tokens: 13 + 13
 timing: round trip 6.06 s = inference 6.02 s (99%) + serial/other 0.04 s (1%)
 ```
 
-It is also a **teaching project**. The C code is small (about 430 lines of code) and heavily
-commented, and the tutorial README is written to be turned into a talk. Everything is measured
+It is also a **teaching project**. The C code is small (about 600 lines of code, 1,550 with its
+comments) and heavily commented, and the tutorial README is written to be turned into a talk. Everything is measured
 on the real chip, with timing charts drawn in your terminal.
 
 ## What you get
@@ -56,7 +56,8 @@ texts are limited by flash and long texts by the CPU.
 
 ## Quick start
 
-You need an ESP32-S3 board with 8 MB PSRAM and 16 MB flash, a USB data cable, and Linux.
+You need an ESP32-S3 board with 16 MB flash (the MiniLM project does not use the PSRAM), a USB data
+cable, and Linux.
 The full steps (serial permissions, ESP-IDF install) are in **[docs/SETUP.md](docs/SETUP.md)**.
 
 ```bash
