@@ -1,0 +1,6 @@
+build/
+sdkconfig
+sdkconfig.old
+model_build/
+__pycache__/
+history/
