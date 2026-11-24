@@ -27,13 +27,23 @@ OPTIONS (before or after the command)
     --no-chart            print the numbers as a table instead of a chart
     --no-timing           leave timing out of the output
     --no-history          do not record this call
+    --yes                 if the board has the wrong firmware or model, write the right one
+                          without asking
+    --no-flash            never flash; report a mismatch and stop
     --full                (embed) show all 384 numbers, not just the first 8
 
 EXIT CODES
     0  success
     1  the board rejected the command
     2  bad command-line arguments (argparse's standard code)
-    3  could not talk to the board (port in use, not plugged in, model not flashed)
+    3  could not talk to the board (port in use, not plugged in)
+    4  the board runs the wrong firmware or model and was not changed (or flashing failed)
+
+BEFORE EVERY BOARD COMMAND the tool asks the board `ident` and checks it runs this project's
+firmware (same protocol version) and the model in model_build/model.bin. If not, it explains
+and asks before writing anything (the firmware takes under a minute, the model about 3
+minutes). Without a terminal, with --json, or with --no-flash it does not write unless you
+also pass --yes: it exits 4 instead.
 
 NOTES
     * Opening the serial port RESETS the board, so each run spends about 2.5 s waiting for
@@ -50,7 +60,8 @@ import serial
 import calls
 import charts
 import history
-from device import BoardError, Device
+from esp32tools import FlashError, Mismatch
+from device import BoardError, connect
 
 
 def present(res, args):
@@ -139,13 +150,16 @@ def build_parser():
     ap.add_argument("--no-chart", action="store_true", help="timing as a table, not a chart")
     ap.add_argument("--no-timing", action="store_true", help="omit the timing")
     ap.add_argument("--no-history", action="store_true", help="do not record this call")
+    ap.add_argument("--yes", action="store_true", help="flash the right firmware/model without asking")
+    ap.add_argument("--no-flash", action="store_true", help="never flash; report a mismatch and stop")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     def add_global_flags(p):
         """Accept the global flags AFTER the command too (`stats --json` as well as
         `--json stats`). SUPPRESS means "leave the value alone unless it was given"."""
         for flag, help_ in (("--json", "machine-readable output"), ("--no-chart", "table, not chart"),
-                            ("--no-timing", "omit the timing"), ("--no-history", "do not record")):
+                            ("--no-timing", "omit the timing"), ("--no-history", "do not record"),
+                            ("--yes", "flash without asking"), ("--no-flash", "never flash")):
             p.add_argument(flag, action="store_true", default=argparse.SUPPRESS, help=help_)
 
     def board(name, fn, help_):
@@ -187,8 +201,13 @@ def main():
         args.fn(args)
         return 0
 
+    # --json output must stay machine-readable, so it never stops to ask a question.
+    mode = "yes" if args.yes else "never" if (args.no_flash or args.json) else "ask"
     try:
-        dev = Device(args.port)
+        dev = connect(args.port, mode)
+    except (Mismatch, FlashError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 4
     except (ConnectionError, serial.SerialException, OSError) as e:
         why = "the port is in use by another program (close the REPL or monitor)" \
             if "lock" in str(e).lower() else str(e)

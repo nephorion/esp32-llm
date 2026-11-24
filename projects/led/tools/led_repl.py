@@ -1,21 +1,34 @@
 #!/usr/bin/env python3
-"""REPL to control the ESP32 LED over serial. Commands: on, off, exit."""
+"""REPL to control the ESP32 LED over serial. Commands: on, off, exit.
+
+Usage:  uv run python projects/led/tools/led_repl.py [serial-port] [--yes | --no-flash]
+
+On start-up the board is asked which firmware it runs. If it is not the led firmware, the
+tool says so and asks before writing it (--yes writes without asking, --no-flash never writes).
+"""
+import argparse
 import sys
-import time
-import serial
+from pathlib import Path
 
-PORT = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
+from esp32tools import BoardError, Board, FlashError, Mismatch, Requirement, connect
 
-# Configure before opening to minimise DTR/RTS toggling.
-s = serial.Serial()
-s.port, s.baudrate, s.timeout = PORT, 115200, 1
-s.dtr = False
-s.rts = False
-s.open()
-time.sleep(2.5)  # opening the port may reset the board; let it boot
-s.reset_input_buffer()
+# Version of the serial protocol: must equal PROTO_VERSION in main/main.c.
+PROTO_VERSION = 1
+REQUIREMENT = Requirement(project="led", proto=PROTO_VERSION,
+                          project_dir=Path(__file__).resolve().parent.parent)
 
-print(f"Connected to {PORT}. Commands: on, off, exit")
+ap = argparse.ArgumentParser()
+ap.add_argument("port", nargs="?", default="/dev/ttyACM0")
+ap.add_argument("--yes", action="store_true", help="write the led firmware without asking if needed")
+ap.add_argument("--no-flash", action="store_true", help="never write; report a mismatch and stop")
+args = ap.parse_args()
+
+try:
+    board = connect(Board, args.port, REQUIREMENT, "yes" if args.yes else "never" if args.no_flash else "ask")
+except (Mismatch, FlashError) as e:
+    sys.exit(f"error: {e}")
+
+print(f"Connected to {args.port}. Commands: on, off, exit")
 while True:
     try:
         cmd = input("led> ").strip().lower()
@@ -25,8 +38,11 @@ while True:
         if cmd:
             print("unknown command (use: on, off, exit)")
         continue
-    s.write((cmd + "\n").encode())
-    print(s.readline().decode(errors="replace").strip() or "(no reply)")
+    try:
+        board.command(cmd)
+        print("OK", cmd)
+    except BoardError as e:
+        print(e)
     if cmd == "exit":
         break
-s.close()
+board.close()

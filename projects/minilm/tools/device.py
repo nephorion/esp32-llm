@@ -9,7 +9,39 @@ The protocol is deliberately simple text:
     PC  -> board :  one command per line            e.g.  "embed hello world"
     board -> PC  :  some reply lines, then "OK"     (or one line starting "ERR")
 """
-from esp32tools import Board, BoardError  # noqa: F401  (BoardError is re-exported for the other tools)
+import struct
+from pathlib import Path
+
+from esp32tools import Board, BoardError, DataImage, Requirement  # noqa: F401  (BoardError is re-exported)
+from esp32tools import connect as _connect
+
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+MODEL_FILE = PROJECT_DIR / "model_build" / "model.bin"
+
+# Version of the serial protocol these tools speak. It must equal PROTO_VERSION in
+# main/main.c: bump both together when a change would break the other side.
+PROTO_VERSION = 1
+
+
+def _model_id():
+    """The content id stored in model.bin's header (see export_model.py), as 8 hex digits,
+    or None if the file is missing or was exported before ids existed."""
+    try:
+        with open(MODEL_FILE, "rb") as f:
+            f.seek(44)                                   # header word 11
+            value = struct.unpack("<I", f.read(4))[0]
+    except (OSError, struct.error):
+        return None
+    return f"{value:08x}" if value else None
+
+
+# What these tools need on the board: this firmware, and this model. esp32tools.connect()
+# compares it with what the board reports in `ident` and offers to flash what is missing.
+REQUIREMENT = Requirement(
+    project="minilm", proto=PROTO_VERSION, project_dir=PROJECT_DIR,
+    data=DataImage(name="model", offset=0x90000,         # offset must match partitions.csv
+                   file=MODEL_FILE, ident_key="model_id", state_key="model",
+                   expected_id=_model_id, how_to_make="make model", minutes=3))
 
 
 def describe_similarity(sim):
@@ -65,10 +97,10 @@ def phase_table(timing, width=28, bars=True):
 
 
 class Device(Board):
-    def __init__(self, port="/dev/ttyACM0"):
+    def __init__(self, port="/dev/ttyACM0", **kwargs):
         self.last_infer_s = None
         self.last_phases = {}
-        super().__init__(port)
+        super().__init__(port, **kwargs)
 
     def on_reply(self, lines):
         """Pick the MiniLM timing out of every reply.
@@ -117,3 +149,10 @@ class Device(Board):
     def info(self):
         """Model and memory facts: a list of text lines."""
         return self.command("info")
+
+
+def connect(port="/dev/ttyACM0", mode="ask"):
+    """Open the board and make sure it runs the MiniLM firmware and model, flashing them if
+    needed. mode is "ask", "yes" or "never" (see esp32tools/ensure.py). Raises
+    esp32tools.Mismatch if the board is wrong and was not (or could not be) fixed."""
+    return _connect(Device, port, REQUIREMENT, mode)

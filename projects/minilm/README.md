@@ -124,6 +124,9 @@ make validate       # 6. optional: check the board against the numpy reference
 `make flash` only rewrites the ~215 KB firmware. The 15 MB model partition is left alone, so
 after the first time you never wait for it again unless the model changes.
 
+You do not have to remember any of this: **the tools check the board for you**. See
+[Is the right firmware on the board?](#is-the-right-firmware-on-the-board) below.
+
 ### One-shot command line (for scripts and AI assistants)
 
 `tools/minilm_cli.py` does the same as the prompt but runs a single command and exits:
@@ -138,12 +141,59 @@ printf 'cat | kitten\ndog | bank\n' | uv run python projects/minilm/tools/minilm
 ```
 
 Opening the serial port resets the board, so every call spends about 2.5 s booting it. Use
-`batch` to compare many pairs over one connection. Options (`--json`, `--no-timing`,
-`--port`) go before the command. Exit codes: 0 ok, 1 the board rejected the command, 2 bad
-arguments, 3 cannot reach the board (for example the port is in use).
+`batch` to compare many pairs over one connection. Options such as `--json` and `--no-timing`
+can go before or after the command (`--port` goes before it). Exit codes: 0 ok, 1 the board rejected the
+command, 2 bad arguments, 3 cannot reach the board (for example the port is in use), 4 the
+board runs the wrong firmware or model and was not changed.
 
 The tools take an exclusive lock on the serial port, so the REPL, the CLI and `make validate`
 refuse to run at the same time (with a clear message) instead of garbling each other's replies.
+
+### Is the right firmware on the board?
+
+The CLI, the prompt and `make validate` only work against this project's firmware and model, and
+other projects in the repo share the same chip. So before doing anything, every tool asks the
+board one question, `ident`, and the board answers with one line:
+
+```
+IDENT project=minilm proto=1 build=3f2a91bc model=ok model_id=efe6e2da
+```
+
+| Field | Meaning |
+|---|---|
+| `project` | which firmware this is (the name in `CMakeLists.txt`) |
+| `proto` | the **protocol version**: bumped whenever a change would break the PC tools |
+| `build` | which exact build (a fingerprint of the compiled program; changes on every rebuild) |
+| `model` | `ok`, `missing` (nothing in the model partition) or `incompatible` |
+| `model_id` | which model file: a checksum stored in `model.bin`'s header by `export_model.py` |
+
+The tool accepts the board when the **project and protocol match** and the model id equals the
+one in `model_build/model.bin`. A firmware you rebuilt without changing the protocol is fine as it
+is. If something is wrong, it says what, and asks before writing anything:
+
+```
+the board is running 'led', not 'minilm'.
+Write the minilm firmware now? This replaces what is on the board and takes under a minute. [y/N]
+```
+
+- **Firmware:** written from `build/` (a few seconds, plus a rebuild first when the sources are
+  newer than `build/`, which needs ESP-IDF exported). The model is not touched.
+- **Model:** written from `model_build/model.bin` (about 3 minutes), only when it is missing or is
+  a different file. If `model.bin` does not exist yet, the tool tells you to run `make model`.
+- **`--yes`** writes without asking; **`--no-flash`** never writes. Without a terminal, or with
+  `--json`, the tools never write unless you also pass `--yes` (this is what keeps scripts and the
+  Claude skill safe). They exit with code 4 and say how to fix it.
+
+Where the check lives: `common/python/esp32tools/` (`ident.py`, `firmware.py`, `ensure.py`) is
+generic, so any project can use it. This project's side is the `REQUIREMENT` in `tools/device.py`
+and `PROTO_VERSION` in `main/main.c`. **The two `PROTO_VERSION` numbers must match.** After
+writing the firmware the tool checks that the board reports the build it just wrote, which would
+catch them drifting apart.
+
+Why a checksum in the model header instead of just a version? Two different exports (a different
+vocabulary size, say) would both be "version 1" yet give different answers. The checksum says
+which file is really in flash. The header word it uses was unused before, so the file format did
+not change.
 
 ### Metrics, history and ASCII charts
 
@@ -487,7 +537,7 @@ board -> OK
 numpy reference.
 
 Opening the serial port **resets the board** (the USB chip toggles the reset line), so the
-scripts wait for the board's `READY` message first.
+scripts wait for the board's `READY` message first, then ask `ident`.
 
 ---
 
@@ -644,8 +694,10 @@ add a TCP server around `bert_embed`.) *How accurate is int8?* (see the table.)
 
 | Symptom | Fix |
 |---|---|
-| `board did not say READY` | The model is not flashed or the firmware crashed. Run `make flash-model`, then `make repl`. |
-| `FATAL could not load the model` / `bad magic` | The `model` partition is empty. `make flash-model`. |
+| `the board is running 'led', not 'minilm'` (exit 4) | Another project is on the board. Answer `y` to the prompt, or `make flash`. |
+| `the model on the board ... is not the one in model.bin` (exit 4) | Answer `y` (3 minutes), or `make flash-model`. |
+| `board did not say READY` | The firmware crashed or the port is busy. Run `make flash`, then `make repl`. |
+| `ERR no usable model in flash` / `model=missing` | The `model` partition is empty. The tools offer to write it, or `make flash-model`. |
 | `no 'model' partition` | The partition table is old. `make flash` rewrites it. |
 | `model is too big for the flash partition` | Lower `WORDS_KEEP` in `tools/export_model.py`. |
 | `Permission denied: /dev/ttyACM0` | Not in the `dialout` group, or you have not logged out and in since adding it. |

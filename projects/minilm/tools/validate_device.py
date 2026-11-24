@@ -13,7 +13,8 @@ import sys
 import numpy as np
 
 import minilm_ref as ref
-from device import Device
+from esp32tools import FlashError, Mismatch
+from device import connect
 
 SENTENCES = [
     "hello world",
@@ -27,7 +28,10 @@ PAIRS = [(1, 2), (3, 4), (0, 1)]
 
 port = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
 model = ref.load()
-dev = Device(port)
+try:
+    dev = connect(port, "ask")
+except (Mismatch, FlashError) as e:
+    sys.exit(f"error: {e}")
 
 print(f"{'sentence':<50} tokens   cos(board, numpy)   board time")
 board = []

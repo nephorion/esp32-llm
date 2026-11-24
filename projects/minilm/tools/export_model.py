@@ -28,7 +28,7 @@ THE FILE FORMAT (all little-endian, every section 4-byte aligned)
 -----------------------------------------------------------------
   header      12 x uint32:
               magic, version, vocab_size, hidden, n_layers, n_heads,
-              intermediate, max_pos, unk_id, cls_id, sep_id, reserved
+              intermediate, max_pos, unk_id, cls_id, sep_id, content_id
   word_emb    qmat [vocab_size x hidden]
   pos_emb     float32 [max_pos x hidden]
   type_emb    float32 [hidden]              (only segment 0 is ever used)
@@ -47,6 +47,10 @@ THE FILE FORMAT (all little-endian, every section 4-byte aligned)
 
   A "qmat" is:  int8 data[rows*cols]  then  float32 scale[rows].
 
+  content_id is the CRC-32 of every byte AFTER the 48-byte header. The firmware reports it in
+  its `ident` reply, and the host tools compare it with this file's value to see whether the
+  model in flash is the one on the PC (and offer to flash it if not).
+
 The C code (main/model.c) and the numpy reference (minilm_ref.py) both read this
 format in exactly this order. If you change anything here, change them too.
 
@@ -55,6 +59,7 @@ USAGE
   uv run python projects/minilm/tools/export_model.py            # writes model_build/model.bin
 """
 import struct
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -71,6 +76,7 @@ WORDS_KEEP = 9000           # how many whole words to keep (most frequent Englis
 PIECES_KEEP = 2500          # how many "##xyz" sub-word pieces to keep (lowest original ids)
 MAX_POS = 64                # only the first 64 position embeddings are stored
                             # (the firmware only uses MAX_TOKENS of them)
+HEADER_BYTES = 48           # 12 x uint32
 PARTITION_BYTES = 0xF70000  # size of the "model" flash partition (see partitions.csv)
 
 
@@ -187,9 +193,13 @@ def main():
     w.buf += blob
     w.pad4()
 
+    # Fill in the content id (header word 11, at byte 44) now that the payload is complete.
+    content_id = zlib.crc32(bytes(w.buf[HEADER_BYTES:]))
+    struct.pack_into("<I", w.buf, 44, content_id)
+
     OUT.write_bytes(bytes(w.buf))
     mb = len(w.buf) / 1e6
-    print(f"wrote {OUT}  ({mb:.2f} MB)")
+    print(f"wrote {OUT}  ({mb:.2f} MB)  content id {content_id:08x}")
     if len(w.buf) > PARTITION_BYTES:
         raise SystemExit("model is too big for the flash partition - lower WORDS_KEEP")
 

@@ -22,6 +22,7 @@
  *
  * COMMANDS
  *   help                      list commands
+ *   ident                     which firmware and model are on the board (for the host tools)
  *   info                      memory and model facts
  *   tokens <text>             show how the text is split into word pieces
  *   embed <text>              print the 384-number embedding
@@ -35,11 +36,23 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "activity_led.h"
+#include "board_ident.h"
 #include "bert.h"
 #include "model.h"
 #include "tokenizer.h"
 
 static model_t model;                    /* the table of pointers into flash (small) */
+
+/* The version of the serial protocol this firmware speaks. Bump it when a change would
+ * break the host tools (commands renamed or removed, reply format changed). It must equal
+ * PROTO_VERSION in tools/device.py: the host refuses a board with a different number and
+ * offers to flash the right firmware. */
+#define PROTO_VERSION 1
+
+/* Is a usable model in flash? If not we still run, so the host can ask `ident`, see
+ * model=missing and offer to flash the model, instead of finding a dead board. */
+static bool model_ok;
+static const char *model_state = "missing";   /* "ok", "missing" or "incompatible" */
 
 /* Two result vectors, kept as globals so they don't use the (small) task stack.
  * `dist` needs both; `embed` uses only vec_a. */
@@ -66,6 +79,17 @@ static void print_timing(void)
     printf("TIMING gelu %lld\n",           (long long)t->gelu_us);
     printf("TIMING residual %lld\n",       (long long)t->residual_us);
     printf("TIMING pool %lld\n",           (long long)t->pool_us);
+}
+
+/* ---- command: ident ------------------------------------------------------ *
+ * Tells the host which firmware this is and what state the model data is in. The model
+ * fields are what let tools/ensure reload the model when it is missing or is a different
+ * file from the one on the PC (model_id is the content id in the file's header). */
+static void cmd_ident(void)
+{
+    char extra[48];
+    snprintf(extra, sizeof extra, "model=%s model_id=%08lx", model_state, (unsigned long)model.id);
+    board_ident_print(PROTO_VERSION, extra);
 }
 
 /* ---- command: info ------------------------------------------------------- */
@@ -143,7 +167,12 @@ static void handle_command(char *line)
     while (*line == ' ') line++;                /* ignore leading spaces */
 
     if (!strncmp(line, "help", 4)) {
-        printf("commands: help | info | tokens <text> | embed <text> | dist <a> | <b>\n");
+        printf("commands: help | ident | info | tokens <text> | embed <text> | dist <a> | <b>\n");
+    } else if (!strcmp(line, "ident")) {
+        cmd_ident();
+    } else if (!model_ok) {
+        /* Everything below needs the model. */
+        printf("ERR no usable model in flash (run: make flash-model)\n"); fflush(stdout); return;
     } else if (!strncmp(line, "info", 4)) {
         cmd_info();
     } else if (!strncmp(line, "tokens ", 7)) {
@@ -184,12 +213,22 @@ void app_main(void)
      * the receive buffer; the zeros mean "no transmit buffer, no event queue". */
     uart_driver_install(UART_NUM_0, 1024, 0, 0, NULL, 0);   /* receive buffer: room for a full-length command line */
 
-    /* Locate the model in flash and allocate the working buffers. If either
-     * fails, say so and stop: there is nothing useful to run. */
-    if (model_load(&model) != ESP_OK || bert_init() != ESP_OK) {
-        printf("FATAL could not load the model (see log above)\n");
-        for (;;) vTaskDelay(1000);              /* sleep forever, politely */
-    }
+    /* Locate the model in flash and allocate the working buffers.
+     *
+     * If the MODEL is missing or wrong we do NOT stop: we carry on and answer `ident` (with
+     * model=missing), so the PC can tell what is wrong and offer to flash it. If the buffers
+     * cannot be allocated that is a real fault, and there is nothing useful to run. */
+    esp_err_t merr = model_load(&model);
+    if (merr == ESP_OK) {
+        if (bert_init() != ESP_OK) {
+            printf("FATAL could not allocate the working buffers (see log above)\n");
+            for (;;) vTaskDelay(1000);          /* sleep forever, politely */
+        }
+        model_ok = true;
+        model_state = "ok";
+    } else if (merr == ESP_ERR_INVALID_VERSION) {
+        model_state = "incompatible";           /* a model file, but not one this firmware understands */
+    }                                           /* anything else: no model in flash ("missing") */
 
     /* Start the activity LED AFTER the model buffers are allocated: the neural network's
      * ~245 KB of working memory must be guaranteed first; the LED needs only a little. */

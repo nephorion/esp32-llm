@@ -9,7 +9,8 @@ Every project in this repository speaks the same simple text protocol:
 
 Board handles the parts that are the same for every project: opening the port safely,
 waiting for the board to boot, and the send-then-collect-replies loop. A project adds its
-own commands by subclassing it (see projects/minilm/tools/device.py).
+own commands by subclassing it, and esp32tools.ensure checks the board runs the right
+firmware before handing the connection over (see projects/minilm/tools/device.py).
 """
 import time
 
@@ -21,8 +22,9 @@ class BoardError(RuntimeError):
 
 
 class Board:
-    def __init__(self, port="/dev/ttyACM0", ready_timeout=15, baudrate=115200):
+    def __init__(self, port="/dev/ttyACM0", ready_timeout=15, baudrate=115200, require_ready=True):
         self.last_rtt_s = None        # seconds from sending the last command to its final OK
+        self.ready = False            # did the board say READY after the reset?
         self.s = serial.Serial()
         self.s.port, self.s.baudrate, self.s.timeout = port, baudrate, 1
         # Opening the port would pulse DTR/RTS, which can reset the board into the
@@ -38,7 +40,10 @@ class Board:
         deadline = time.time() + ready_timeout
         while time.time() < deadline:
             if self.s.readline().strip() == b"READY":
+                self.ready = True
                 return
+        if not require_ready:
+            return        # the caller will ask `ident` and decide what the silence means
         raise ConnectionError("board did not say READY - port busy (another program using it?), "
                               "firmware or data not flashed, or board not connected")
 

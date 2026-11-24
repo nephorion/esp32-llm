@@ -152,6 +152,16 @@ A project pulls in shared code by adding `set(EXTRA_COMPONENT_DIRS ../../common/
 its `CMakeLists.txt` and listing the component in `REQUIRES`. See `projects/_template` for a
 complete minimal example.
 
+**Checking the board from the host tools.** Every project answers a serial `ident` command with
+its project name, a protocol version and a build id (`common/components/board_ident`). The
+generic `esp32tools.connect()` asks it before a tool does anything, compares the answer with the
+project's `Requirement`, and offers to build and flash the right firmware if it is wrong. The
+LED REPL (`projects/led/tools/led_repl.py`) and the MiniLM tools use it, and it is the model
+for a new project's tools. Compatible means the same project and the same protocol version, so a
+rebuild that keeps the protocol is accepted. Without a terminal, or with `--no-flash`, the
+tools never write to the board: they exit with code 4 and say how to fix it. `projects/bench/`
+only prints at boot and takes no commands, so it is not covered.
+
 **Flash layout.** `led`, `bench` and new projects use the standard table in
 `common/partitions/`, whose app ends at `0x90000`, so flashing them never overwrites the
 MiniLM model. They do replace the partition table, though. After flashing another project, run
