@@ -141,8 +141,8 @@ printf 'cat | kitten\ndog | bank\n' | uv run python projects/minilm/tools/minilm
 ```
 
 Opening the serial port resets the board, so every call spends about 2.5 s booting it. Use
-`batch` to compare many pairs over one connection. Options (`--json`, `--no-timing`,
-`--port`) can go before or after the command. Exit codes: 0 ok, 1 the board rejected the
+`batch` to compare many pairs over one connection. Options such as `--json` and `--no-timing`
+can go before or after the command (`--port` goes before it). Exit codes: 0 ok, 1 the board rejected the
 command, 2 bad arguments, 3 cannot reach the board (for example the port is in use), 4 the
 board runs the wrong firmware or model and was not changed.
 
@@ -181,8 +181,8 @@ Write the minilm firmware now? This replaces what is on the board and takes unde
 - **Model:** written from `model_build/model.bin` (about 3 minutes), only when it is missing or is
   a different file. If `model.bin` does not exist yet, the tool tells you to run `make model`.
 - **`--yes`** writes without asking; **`--no-flash`** never writes. Without a terminal, or with
-  `--json`, the tools never write (this is what keeps scripts and the Claude skill safe). They exit
-  with code 4 and say how to fix it.
+  `--json`, the tools never write unless you also pass `--yes` (this is what keeps scripts and the
+  Claude skill safe). They exit with code 4 and say how to fix it.
 
 Where the check lives: `common/python/esp32tools/` (`ident.py`, `firmware.py`, `ensure.py`) is
 generic, so any project can use it. This project's side is the `REQUIREMENT` in `tools/device.py`

@@ -42,7 +42,8 @@ EXIT CODES
 BEFORE EVERY BOARD COMMAND the tool asks the board `ident` and checks it runs this project's
 firmware (same protocol version) and the model in model_build/model.bin. If not, it explains
 and asks before writing anything (the firmware takes under a minute, the model about 3
-minutes). Without a terminal, with --json, or with --no-flash it never writes: it exits 4.
+minutes). Without a terminal, with --json, or with --no-flash it does not write unless you
+also pass --yes: it exits 4 instead.
 
 NOTES
     * Opening the serial port RESETS the board, so each run spends about 2.5 s waiting for

@@ -80,7 +80,8 @@ def app_build_id(image):
 
 def _source_files(req):
     root = req.project_dir.parent.parent        # the repository root: projects/<name>/ -> ../..
-    patterns = [(req.project_dir, "main/**/*"), (req.project_dir, "CMakeLists.txt"),
+    patterns = [(req.project_dir, "main/**/*"), (req.project_dir, "components/**/*"),
+                (req.project_dir, "CMakeLists.txt"),
                 (req.project_dir, "sdkconfig.defaults"), (req.project_dir, "partitions.csv"),
                 (root / "common", "components/**/*"), (root / "common", "sdkconfig.*"),
                 (root / "common", "partitions/*")]
@@ -114,7 +115,7 @@ def build(req):
     env = dict(os.environ)
     venv = env.pop("VIRTUAL_ENV", None)
     if venv:
-        env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep) if not p.startswith(venv))
+        env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep) if not p.startswith(os.path.join(venv, "")))
     _say(f"building {req.project} ...")
     r = subprocess.run(["idf.py", "build"], cwd=req.project_dir, env=env, stdout=sys.stderr, stderr=sys.stderr)
     if r.returncode:
