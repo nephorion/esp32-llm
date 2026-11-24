@@ -21,8 +21,13 @@ OTHER
     help                      this list
     exit                      quit (Up/Down arrows recall earlier commands)
 
-Usage:  uv run python projects/minilm/tools/embed_repl.py [serial-port]
+Usage:  uv run python projects/minilm/tools/embed_repl.py [serial-port] [--yes | --no-flash]
+
+On start-up the board is asked which firmware it runs. If it is not this project's firmware, or
+the model is missing or out of date, the tool says so and asks before writing anything
+(--yes writes without asking, --no-flash never writes).
 """
+import argparse
 import atexit
 import readline          # importing this gives input() arrow-key history and line editing
 import sys
@@ -31,7 +36,8 @@ from pathlib import Path
 import calls
 import charts
 import history
-from device import Device
+from esp32tools import FlashError, Mismatch
+from device import connect
 
 # Remember typed commands between sessions (~/.minilm_history). This is only the
 # keyboard recall; the record of calls and their timings is history/calls.jsonl.
@@ -43,9 +49,17 @@ except FileNotFoundError:
 readline.set_history_length(500)
 atexit.register(readline.write_history_file, HISTORY)
 
-port = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyACM0"
+ap = argparse.ArgumentParser(add_help=False)
+ap.add_argument("port", nargs="?", default="/dev/ttyACM0")
+ap.add_argument("--yes", action="store_true")
+ap.add_argument("--no-flash", action="store_true")
+args = ap.parse_args()
+port = args.port
 print(f"Connecting to {port} (the board resets when the port opens)...")
-dev = Device(port)
+try:
+    dev = connect(port, "yes" if args.yes else "never" if args.no_flash else "ask")
+except (Mismatch, FlashError) as e:
+    sys.exit(f"error: {e}")
 print("Ready. Type 'help' for the commands.")
 
 show_chart = True

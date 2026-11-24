@@ -16,7 +16,7 @@ Always run from the repo root, and prefer `--json` so you can read exact numbers
 
 ```bash
 cd <repo root>   # the folder containing projects/
-uv run python projects/minilm/tools/minilm_cli.py --json dist "text a" "text b"
+uv run python projects/minilm/tools/minilm_cli.py --json --no-flash dist "text a" "text b"
 ```
 
 | Need | Command |
@@ -27,13 +27,13 @@ uv run python projects/minilm/tools/minilm_cli.py --json dist "text a" "text b"
 | How text is split into pieces | `tokens "text"` |
 | Model and RAM facts | `info` |
 
-Global options (`--json`, `--no-chart`, `--no-timing`, `--no-history`, `--port /dev/ttyACM0`) can go before or after the command.
+Global options (`--json`, `--no-chart`, `--no-timing`, `--no-history`, `--no-flash`, `--port /dev/ttyACM0`) can go before or after the command. **Always add `--no-flash`** to commands that talk to the board (see Guardrails).
 
 Batch example (one connection, any number of pairs):
 
 ```bash
 printf 'the cat sat | a kitten rested\nreset my password | I forgot my login\n' \
-  | uv run python projects/minilm/tools/minilm_cli.py --json batch
+  | uv run python projects/minilm/tools/minilm_cli.py --json --no-flash batch
 ```
 
 ## History, statistics and charts (no board needed)
@@ -105,6 +105,9 @@ Each CLI call also spends about 2.5 s because opening the serial port resets the
 | 1 | the board rejected the command | read the `error:` line |
 | 2 | bad command-line arguments | fix the command |
 | 3 | cannot talk to the board | see below |
+| 4 | the board runs the wrong firmware or model, and was not changed | tell the user; see below |
+
+Exit 4 means the board has another project's firmware (or an old one), or a missing or different model. The tool checked with the board's `ident` command and refused to flash. Tell the user what the error line says. They fix it by running the printed `make` command, or by running the CLI themselves and answering `y` to its prompt. **Do not** retry with `--yes`.
 
 Exit 3 usually means the port is in use ("close the REPL or monitor"), the board is
 unplugged, or the model is not flashed. Check what holds the port with
@@ -113,6 +116,7 @@ NOT kill their process.
 
 ## Guardrails
 
+- **Never pass `--yes`.** It makes the CLI write firmware (and possibly the 15 MB model) to the board without asking. Pass `--no-flash` on every board command; without a terminal the CLI refuses to flash anyway, and `--no-flash` makes that explicit.
 - Only the read-only commands above are in scope. **Never** run `make flash`,
   `make flash-model`, `idf.py flash` or `esptool` from this skill: flashing replaces the
   firmware on the board (and `flash-model` writes ~15 MB of flash). Only do those if the user

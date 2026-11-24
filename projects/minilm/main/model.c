@@ -99,13 +99,17 @@ esp_err_t model_load(model_t *m)
      *   h[6] inter       must equal INTERMEDIATE
      *   h[7] max_pos     position embeddings stored
      *   h[8..10]         ids of [UNK], [CLS], [SEP]
-     *   h[11]            reserved
+     *   h[11]            content id: the CRC-32 of every byte after this header, written
+     *                    by export_model.py. It tells the host tools WHICH model.bin is in
+     *                    flash (reported by the `ident` command), so they can reload it if it
+     *                    is missing or out of date.
      */
     const uint32_t *h = (const uint32_t *)base;
     if (h[0] != 0x364C4D4D) {
         ESP_LOGE(TAG, "no model in flash (bad magic 0x%08lx). Run: make flash-model", (unsigned long)h[0]);
         return ESP_ERR_INVALID_STATE;
     }
+    m->id = h[11];                               /* remember it even if the checks below fail */
     if (h[1] != 1 || h[3] != HIDDEN || h[4] != N_LAYERS || h[5] != N_HEADS || h[6] != INTERMEDIATE) {
         ESP_LOGE(TAG, "model file does not match this firmware's dimensions");
         return ESP_ERR_INVALID_VERSION;

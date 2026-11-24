@@ -8,13 +8,19 @@
  *     PC -> board                   :  one command per line
  *     board -> PC                   :  some reply lines, then OK   (or one line "ERR ...")
  *
- * Two commands are built in so you can see it work: `ping` and `echo <text>`.
+ * Three commands are built in so you can see it work: `ping`, `echo <text>` and `ident`.
+ * (`ident` tells the host tools which firmware this is: see common/components/board_ident.)
  * Add your own in handle().
  */
 #include <stdio.h>
 #include <string.h>
 #include "driver/uart.h"
+#include "board_ident.h"    /* the `ident` command (common/components/board_ident) */
 #include "board_led.h"      /* the shared on-board LED (common/components/board_led) */
+
+/* Version of this project's serial protocol. Bump it when a change would break the host
+ * tools. The host side (see Makefile) must use the same number. */
+#define PROTO_VERSION 1
 
 static void handle(char *line)
 {
@@ -22,6 +28,8 @@ static void handle(char *line)
         printf("pong\n");
     } else if (!strncmp(line, "echo ", 5)) {
         printf("%s\n", line + 5);
+    } else if (!strcmp(line, "ident")) {
+        board_ident_print(PROTO_VERSION, NULL);
     } else {
         printf("ERR unknown command\n");
         return;

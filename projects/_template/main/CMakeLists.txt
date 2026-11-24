@@ -1,1 +1,1 @@
-idf_component_register(SRCS "main.c" INCLUDE_DIRS "." REQUIRES driver board_led)
+idf_component_register(SRCS "main.c" INCLUDE_DIRS "." REQUIRES driver board_led board_ident)

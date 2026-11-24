@@ -135,6 +135,7 @@ typedef struct {
  * Filled in once by model_load() at start-up, then only read.
  */
 typedef struct {
+    uint32_t id;           /* content id from the file header: which model.bin is flashed */
     uint32_t vocab_size;   /* number of rows in the (pruned) word table      */
     uint32_t max_pos;      /* how many positions have an embedding (64)      */
     uint32_t unk_id;       /* id of the special token [UNK]  (unknown word)  */
