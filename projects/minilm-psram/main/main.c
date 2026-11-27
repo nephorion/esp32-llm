@@ -95,6 +95,7 @@ static int command(model_t *m, const char *line)
 
 void app_main(void)
 {
-    static const minilm_hooks_t hooks = { .model_ready = copy_to_psram, .command = command };
+    static const minilm_hooks_t hooks = { .model_ready = copy_to_psram, .command = command,
+                                          .help = " | psram [n]" };
     minilm_shell_run(&hooks);
 }

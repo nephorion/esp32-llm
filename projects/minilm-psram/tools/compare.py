@@ -61,7 +61,7 @@ def main():
                 best = min(runs, key=lambda r: r["total"])
                 rows.append(dict(psram_layers=n, tokens=tokens, total_s=round(best["total"], 4),
                                  weight_fetch_s=round(best["weight_fetch"], 4),
-                                 arithmetic_s=round(best["dot"], 4)))
+                                 arithmetic_s=round(best["dot"], 4), copy_ms=status["copy_ms"]))
         psram(dev, status["max"])
     except (BoardError, TimeoutError) as e:
         sys.exit(f"error: {e}")
@@ -83,7 +83,7 @@ def main():
     print(f"\nSaved {len(rows)} rows to {out}")
     if different:
         sys.exit(f"error: {different} embeddings differed from the all-flash answer")
-    print("Every embedding was identical to the all-flash one.")
+    print("Every embedding was identical to the all-flash one (as printed, 6 decimals).")
 
 
 if __name__ == "__main__":

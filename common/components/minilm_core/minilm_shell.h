@@ -16,6 +16,9 @@ typedef struct {
      * 1 if you handled it (the shell then prints OK), or -1 if you handled it and have
      * already printed an "ERR ..." line. */
     int (*command)(model_t *m, const char *line);
+
+    /* Added to the end of the `help` reply to list those commands, or NULL. */
+    const char *help;
 } minilm_hooks_t;
 
 /* Run the program. Never returns. `hooks` may be NULL (the original MiniLM project). */

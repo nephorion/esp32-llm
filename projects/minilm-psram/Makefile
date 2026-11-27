@@ -7,4 +7,8 @@ include ../../common/mk/esp.mk
 run:
 	$(PY) tools/compare.py $(PORT)
 
-.PHONY: run
+# The model belongs to projects/minilm: these forward to it (the host tools suggest them).
+model flash-model:
+	$(MAKE) -C ../minilm $@ PORT=$(PORT)
+
+.PHONY: run model flash-model

@@ -169,7 +169,8 @@ static void handle_command(char *line)
     while (*line == ' ') line++;                /* ignore leading spaces */
 
     if (!strncmp(line, "help", 4)) {
-        printf("commands: help | ident | info | tokens <text> | embed <text> | dist <a> | <b>\n");
+        printf("commands: help | ident | info | tokens <text> | embed <text> | dist <a> | <b>%s\n",
+               (hooks && hooks->help) ? hooks->help : "");
     } else if (!strcmp(line, "ident")) {
         cmd_ident();
     } else if (!model_ok) {

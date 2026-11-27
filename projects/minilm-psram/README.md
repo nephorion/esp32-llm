@@ -3,7 +3,8 @@
 [MiniLM](../minilm/README.md) with as many layers' weight matrices as fit (4 of 6) copied from
 flash into PSRAM at start-up. The program is the same shared code
 (`common/components/minilm_core`); this project only copies the matrices and repoints the
-model's pointers at them, so the answers are bit-for-bit identical.
+model's pointers at them. The weights are the same bytes, and the embeddings come out identical
+(compared as printed, to 6 decimals).
 
 The model must already be in flash (`make model flash-model` in `projects/minilm`).
 
@@ -19,7 +20,7 @@ all-flash one, and saves a CSV in `results/`. After changing the code, run
 
 ## Result
 
-From `results/psram_20261127_191839.csv` (240 MHz, flash DIO 80 MHz, PSRAM 40 MHz).
+From `results/psram_20261127_193333.csv` (240 MHz, flash DIO 80 MHz, PSRAM 40 MHz).
 
 | Tokens | All in flash | 4 layers in PSRAM | Speedup |
 |---|---|---|---|

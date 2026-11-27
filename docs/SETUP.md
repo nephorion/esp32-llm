@@ -144,6 +144,8 @@ common/                 shared by every project
   python/esp32tools/      generic serial helper (Board)
 projects/               one self-contained ESP-IDF project per folder
   minilm/                 MiniLM-L6 on the chip (start with its README)
+  minilm-psram/           the same model with 4 layers' weights in PSRAM
+  matbench/               matrix kernels timed on the chip
   bench/                  memory and GPIO speed benchmark
   led/                    LED on/off over serial
   _template/              what `make new NAME=foo` copies
