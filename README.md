@@ -88,6 +88,7 @@ could share lives in `common/`.
 | `projects/_template/` | Starting point for a new project: `make new NAME=myproject` |
 | `common/` | Shared ESP-IDF components (including the `matmath` kernels and the MiniLM model code), build rules, flash layout and the Python serial helper |
 | `.claude/skills/minilm/` | Claude Code skill for querying the board |
+| [`docs/reports/`](docs/reports/README.md) | Dated reports: speed-ups tried, findings and where they are in the code |
 | [`docs/SETUP.md`](docs/SETUP.md) | Board capabilities, prerequisites, usage, troubleshooting |
 
 Run any project from the root with `make p=<project> <target>`, for example
