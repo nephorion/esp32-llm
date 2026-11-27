@@ -186,7 +186,7 @@ Write the minilm firmware now? This replaces what is on the board and takes unde
 
 Where the check lives: `common/python/esp32tools/` (`ident.py`, `firmware.py`, `ensure.py`) is
 generic, so any project can use it. This project's side is the `REQUIREMENT` in `tools/device.py`
-and `PROTO_VERSION` in `main/main.c`. **The two `PROTO_VERSION` numbers must match.** After
+and `PROTO_VERSION` in `common/components/minilm_core/shell.c`. **The two `PROTO_VERSION` numbers must match.** After
 writing the firmware the tool checks that the board reports the build it just wrote, which would
 catch them drifting apart.
 
@@ -370,7 +370,7 @@ first.** The C code is a line-for-line translation.
 uv run --project ../.. python tools/minilm_ref.py dist "a cat sat on the mat" "stock markets fell"
 ```
 
-The key functions, each with a twin in `main/bert.c`:
+The key functions, each with a twin in `common/components/minilm_core/bert.c`:
 
 | Function | What it does |
 |---|---|
@@ -448,12 +448,14 @@ writes the file at offset `0x90000`, which must match the `model` row.
 
 Read the files in this order. About 1214 lines of C in total, of which roughly 431 are code and the rest are teaching comments.
 
+The C code is in [`common/components/minilm_core/`](../../common/components/minilm_core/) so that [`minilm-psram`](../minilm-psram/README.md) can share it; this project's own `main/main.c` only starts it.
+
 | File | Role |
 |---|---|
-| `main/model.h`, `model.c` | Map the flash partition and compute pointers to every tensor. Nothing is copied. |
-| `main/tokenizer.h`, `tokenizer.c` | WordPiece: text to token ids (binary search over the sorted vocabulary). |
-| `main/bert.h`, `bert.c` | The neural network: embeddings, 6 layers, pooling. |
-| `main/main.c` | The serial command shell (`embed`, `dist`, `tokens`, `info`). |
+| `model.h`, `model.c` | Map the flash partition and compute pointers to every tensor. Nothing is copied. |
+| `tokenizer.h`, `tokenizer.c` | WordPiece: text to token ids (binary search over the sorted vocabulary). |
+| `bert.h`, `bert.c` | The neural network: embeddings, 6 layers, pooling. |
+| `shell.c` | The serial command shell (`embed`, `dist`, `tokens`, `info`). |
 | `../../common/components/board_led/` | The blinking activity LED (see below). Shared with the other projects, so it lives in `common/`. |
 
 ### The tokenizer (`tokenizer.c`)

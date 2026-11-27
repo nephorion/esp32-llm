@@ -136,6 +136,7 @@ Only one program can hold the port at a time, so close `make monitor` first.
 
 ```
 common/                 shared by every project
+  components/minilm_core/ the MiniLM model code (minilm and minilm-psram)
   components/board_led/   on-board LED + the "busy" blinker (ESP-IDF component)
   mk/esp.mk               shared build / flash / monitor rules
   partitions/             standard flash layout (512 KB app, nothing above 0x90000)

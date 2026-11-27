@@ -80,11 +80,12 @@ could share lives in `common/`.
 | Folder | What it is |
 |---|---|
 | [`projects/minilm/`](projects/minilm/README.md) | **The main project**: MiniLM-L6 on the chip, with its Python tools and the tutorial |
+| [`projects/minilm-psram/`](projects/minilm-psram/README.md) | The same model with 4 layers' weights held in PSRAM, timed against flash |
 | `projects/bench/` | Memory and GPIO speed benchmark (results in `projects/bench/results/`) |
 | [`projects/matbench/`](projects/matbench/README.md) | Matrix kernels timed on the chip: C against assembly and SIMD |
 | `projects/led/` | LED on/off over serial, the first example |
 | `projects/_template/` | Starting point for a new project: `make new NAME=myproject` |
-| `common/` | Shared ESP-IDF components (including the `matmath` kernels), build rules, flash layout and the Python serial helper |
+| `common/` | Shared ESP-IDF components (including the `matmath` kernels and the MiniLM model code), build rules, flash layout and the Python serial helper |
 | `.claude/skills/minilm/` | Claude Code skill for querying the board |
 | [`docs/SETUP.md`](docs/SETUP.md) | Board capabilities, prerequisites, usage, troubleshooting |
 

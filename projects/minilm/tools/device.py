@@ -19,7 +19,7 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 MODEL_FILE = PROJECT_DIR / "model_build" / "model.bin"
 
 # Version of the serial protocol these tools speak. It must equal PROTO_VERSION in
-# main/main.c: bump both together when a change would break the other side.
+# common/components/minilm_core/shell.c: bump both together when a change would break the other side.
 PROTO_VERSION = 1
 
 
