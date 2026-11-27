@@ -3,3 +3,8 @@
 CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+# Read flash over 4 data lines (QIO) instead of the default 2 (DIO). On this board it cut
+# MiniLM's weight fetch from 0.74 s to 0.50 s. The flash chip must support quad mode; if a
+# board will not boot with this, delete the line. (esptool still reports "dio" while
+# flashing: the chip switches to QIO during start-up.)
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y

@@ -103,6 +103,22 @@ def _say(msg):
     print(msg, file=sys.stderr, flush=True)
 
 
+def _refresh_sdkconfig(req):
+    """`idf.py build` keeps an existing sdkconfig, so a changed default (for example the flash
+    mode) would silently not apply. If any defaults file is newer than sdkconfig, set it aside
+    (as sdkconfig.old) so the build regenerates it. Otherwise leave it alone, which keeps
+    `menuconfig` changes across ordinary code rebuilds."""
+    cfg = req.project_dir / "sdkconfig"
+    if not cfg.exists():
+        return
+    root = req.project_dir.parent.parent
+    defaults = [req.project_dir / "sdkconfig.defaults", *(root / "common").glob("sdkconfig.*")]
+    if any(p.is_file() and p.stat().st_mtime > cfg.stat().st_mtime for p in defaults):
+        _say(f"the default settings changed: regenerating {req.project}'s sdkconfig "
+             f"(the old one is kept as sdkconfig.old)")
+        cfg.replace(req.project_dir / "sdkconfig.old")
+
+
 def build(req):
     """Run `idf.py build` in the project folder. Needs ESP-IDF exported in the shell."""
     if not (os.environ.get("IDF_PATH") and shutil.which("idf.py")):
@@ -116,6 +132,7 @@ def build(req):
     venv = env.pop("VIRTUAL_ENV", None)
     if venv:
         env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep) if not p.startswith(os.path.join(venv, "")))
+    _refresh_sdkconfig(req)
     _say(f"building {req.project} ...")
     r = subprocess.run(["idf.py", "build"], cwd=req.project_dir, env=env, stdout=sys.stderr, stderr=sys.stderr)
     if r.returncode:

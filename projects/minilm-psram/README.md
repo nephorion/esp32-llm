@@ -20,18 +20,20 @@ all-flash one, and saves a CSV in `results/`. After changing the code, run
 
 ## Result
 
-From `results/psram_20261127_193333.csv` (240 MHz, flash DIO 80 MHz, PSRAM 40 MHz).
+**With QIO flash (the current setting), copying to PSRAM at 40 MHz no longer helps.** From
+`results/psram_20261127_200240.csv` (240 MHz, flash QIO 80 MHz, PSRAM 40 MHz):
 
-| Tokens | All in flash | 4 layers in PSRAM | Speedup |
-|---|---|---|---|
-| 3 | 1.283 s | 1.137 s | 1.13x |
-| 8 | 2.140 s | 1.995 s | 1.07x |
-| 16 | 3.538 s | 3.392 s | 1.04x |
+| Tokens | All in flash | 4 layers in PSRAM |
+|---|---|---|
+| 3 | 1.040 s | 1.054 s |
+| 8 | 1.897 s | 1.911 s |
+| 16 | 3.294 s | 3.308 s |
 
-- Each layer moved saves about **36 ms** of weight fetch, the same for every layer and length.
-  With 4 layers the fetch drops from 0.743 s to 0.597 s.
-- A layer therefore takes about 124 ms to fetch from flash and 87 ms from PSRAM: only 1.4x
-  faster, although PSRAM streamed about twice as fast as flash in `matbench`. A likely reason
-  is that the byte-by-byte int8 to float loop now limits it. This has not been measured.
-- Arithmetic is unchanged and dominates longer texts.
-- Copying the 4 layers adds 0.84 s to start-up.
+The weight fetch goes from 0.503 s to 0.517 s, and copying adds 0.65 s to start-up.
+
+Before QIO, with flash in DIO mode (`results/psram_20261127_193333.csv`), the same 4 layers cut
+the fetch from 0.743 s to 0.597 s (1.04x to 1.13x faster embeddings).
+
+In a one-off trial (console output only, no results file), PSRAM at 80 MHz **with** QIO brought the fetch to 0.454 s with 4 layers
+(0.487 s all in flash). That setting is not enabled here. A likely limit in all these cases is
+the byte-by-byte int8 to float loop, which has not been measured on its own.

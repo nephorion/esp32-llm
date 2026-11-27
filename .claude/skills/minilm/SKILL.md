@@ -76,12 +76,12 @@ Timing (`timing` in JSON, all seconds): `round_trip_s` is the PC's stopwatch,
 `inference_s` is the board's own, and `phases_s` splits it:
 
 - `dot` = arithmetic (multiply-adds); `weight_fetch` = reading int8 weights from flash and
-  converting to float (a fixed ~0.74 s per embedding, whatever the text length);
+  converting to float (a fixed ~0.50 s per embedding, whatever the text length);
 - `attention`, `layer_norm`, `gelu`, `residual`, `lookup`, `tokenize`, `pool` = the rest;
 - `total` = whole call. `dist` embeds two texts, so its phases cover both.
 
-Typical latency: about 1.3 s for a 3-token text up to about 3.5 s for 16 tokens, per text
-(the fit from the history: roughly 0.76 s + 0.173 s per token).
+Typical latency: about 1.0 s for a 3-token text up to about 3.3 s for 16 tokens, per text
+(the fit from the history: roughly 0.52 s + 0.173 s per token).
 Each CLI call also spends about 2.5 s because opening the serial port resets the board.
 
 ## Limits you must mention when they matter
