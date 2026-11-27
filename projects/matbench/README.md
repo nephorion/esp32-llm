@@ -18,7 +18,7 @@ tool warns when its build differs from yours).
 
 ## Findings (240 MHz, million multiply-adds per second)
 
-From `results/matbench_20261127_181835.csv`.
+From `results/matbench_20261127_191240.csv`.
 
 | Matrix-vector, 384 columns | plain C | best scalar | SIMD |
 |---|---|---|---|
@@ -31,7 +31,7 @@ From `results/matbench_20261127_181835.csv`.
 - **SIMD int8 is the only large win from assembly**: about 32x over plain C in internal RAM, and
   up to 45x on a long dot product.
 - **Scalar assembly does not beat good C.** For float32, GCC turns the unrolled C into the same
-  instructions as the hand-written loop (identical cycle counts). For int8, the scalar assembly
+  instruction mix as the hand-written loop, in a different order (cycle counts within 1.5%). For int8, the scalar assembly
   beats the plain loop (GCC uses a branch there, not a zero-overhead loop) but loses to unrolled C.
 - **Once the weights do not fit the 32 KB data cache, memory speed decides.** From flash, 15 MB/s
   or so is all there is, whatever the code does.

@@ -211,6 +211,12 @@ static void selftest(void)
                 int32_t want = mm_dot_s8_c(a + off, b + off, n);
                 for (size_t i = 1; i < COUNT(S8); i++, checks++)
                     bad += S8[i].fn(a + off, b + off, n) != want;
+                /* Only ONE of the two pointers misaligned (the same check when off is 0). */
+                int32_t want_a = mm_dot_s8_c(a + off, b, n), want_b = mm_dot_s8_c(a, b + off, n);
+                for (size_t i = 1; i < COUNT(S8); i++, checks += 2) {
+                    bad += S8[i].fn(a + off, b, n) != want_a;
+                    bad += S8[i].fn(a, b + off, n) != want_b;
+                }
                 size_t foff = off % 4;
                 float fwant = mm_dot_f32_c(x + foff, y + foff, n);
                 for (size_t i = 1; i < COUNT(F32); i++, checks++)
