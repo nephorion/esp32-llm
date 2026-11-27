@@ -4,7 +4,7 @@ minilm_ref.py - a plain-numpy implementation of MiniLM-L6 sentence embeddings.
 
 This is the READABLE version of what the ESP32 firmware does. It reads the very
 same model.bin the board reads (so it also checks the file format), and every step
-below has a matching function in projects/minilm/main/bert.c. Read this first, then the C.
+below has a matching function in common/components/minilm_core/bert.c. Read this first, then the C.
 
 The whole pipeline, for one piece of text:
 
@@ -29,12 +29,12 @@ from pathlib import Path
 import numpy as np
 
 MODEL = Path(__file__).resolve().parent.parent / "model_build" / "model.bin"
-MAX_TOKENS = 16        # must match MAX_TOKENS in main/bert.h
+MAX_TOKENS = 16        # must match MAX_TOKENS in common/components/minilm_core/bert.h
 EPS = 1e-12            # LayerNorm epsilon used by this model
 
 
 # --------------------------------------------------------------------------
-# Loading model.bin  (mirror of main/model.c)
+# Loading model.bin  (mirror of common/components/minilm_core/model.c)
 # --------------------------------------------------------------------------
 class Reader:
     """Walks through the file in the exact order export_model.py wrote it."""
@@ -91,7 +91,7 @@ def load(path=MODEL):
 
 
 # --------------------------------------------------------------------------
-# Step 1: tokenizer  (mirror of main/tokenizer.c)
+# Step 1: tokenizer  (mirror of common/components/minilm_core/tokenizer.c)
 # --------------------------------------------------------------------------
 def basic_split(text):
     """Lower-case, split on whitespace, and make every punctuation mark its own word.
@@ -144,7 +144,7 @@ def tokenize(m, text):
 
 
 # --------------------------------------------------------------------------
-# Steps 2-4: the neural network (mirror of main/bert.c)
+# Steps 2-4: the neural network (mirror of common/components/minilm_core/bert.c)
 # --------------------------------------------------------------------------
 def layer_norm(x, g, b):
     """Normalise each token's vector to mean 0 / variance 1, then scale and shift."""

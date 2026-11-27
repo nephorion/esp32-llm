@@ -136,6 +136,7 @@ Only one program can hold the port at a time, so close `make monitor` first.
 
 ```
 common/                 shared by every project
+  components/minilm_core/ the MiniLM model code (minilm and minilm-psram)
   components/board_led/   on-board LED + the "busy" blinker (ESP-IDF component)
   mk/esp.mk               shared build / flash / monitor rules
   partitions/             standard flash layout (512 KB app, nothing above 0x90000)
@@ -143,6 +144,8 @@ common/                 shared by every project
   python/esp32tools/      generic serial helper (Board)
 projects/               one self-contained ESP-IDF project per folder
   minilm/                 MiniLM-L6 on the chip (start with its README)
+  minilm-psram/           the same model with 4 layers' weights in PSRAM
+  matbench/               matrix kernels timed on the chip
   bench/                  memory and GPIO speed benchmark
   led/                    LED on/off over serial
   _template/              what `make new NAME=foo` copies

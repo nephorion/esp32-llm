@@ -51,7 +51,7 @@ THE FILE FORMAT (all little-endian, every section 4-byte aligned)
   its `ident` reply, and the host tools compare it with this file's value to see whether the
   model in flash is the one on the PC (and offer to flash it if not).
 
-The C code (main/model.c) and the numpy reference (minilm_ref.py) both read this
+The C code (common/components/minilm_core/model.c) and the numpy reference (minilm_ref.py) both read this
 format in exactly this order. If you change anything here, change them too.
 
 USAGE
