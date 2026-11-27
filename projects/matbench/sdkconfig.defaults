@@ -1,0 +1,7 @@
+# Settings for this project only. Shared ones are in ../../common/sdkconfig.common, and
+# sdkconfig.small-app gives the standard 512 KB app partition.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_40M=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP_TASK_WDT_EN=n
