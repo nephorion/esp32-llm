@@ -24,7 +24,7 @@ Times are local (+11:00), all on 2026-11-27.
 | 19:09 | `9fc0ba7`, `db20be5` | [#4](https://github.com/nephorion/esp32-llm/pull/4) | `matmath` kernels and the `matbench` benchmark |
 | 19:27 | `4d9ffab`, `e66c371` | [#5](https://github.com/nephorion/esp32-llm/pull/5) | Shared MiniLM code; `minilm-psram` |
 | 20:06 | `5a78699`, `375607a` | [#6](https://github.com/nephorion/esp32-llm/pull/6) | QIO flash in every project; host tools apply changed settings |
-| 21:35 | `173ad99` | branch `minilm-fast` | `minilm-fast` (SIMD, 2 cores, faster fetch); `bench` flash test fixed |
+| 21:35 | `173ad99` | [#7](https://github.com/nephorion/esp32-llm/pull/7) | `minilm-fast` (SIMD, 2 cores, faster fetch); `bench` flash test fixed |
 
 ## Where in the code
 
