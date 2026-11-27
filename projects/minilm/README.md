@@ -198,7 +198,8 @@ not change.
 ### Metrics, history and ASCII charts
 
 After every `embed` or `dist`, the CLI and the prompt draw a [plotext](https://github.com/piccolomo/plotext)
-bar chart of where that call's time went, with the seconds and percentage on each bar:
+bar chart of where that call's time went, with the seconds and percentage on each bar (this sample was
+recorded before the switch to QIO flash, so its weight fetch is slower than today's):
 
 ```
                          where the 3.76 s went (seconds)
@@ -239,12 +240,12 @@ uv run python projects/minilm/tools/minilm_cli.py plot latency      # ASCII char
 length, so `stats` fits one to your own calls:
 
 ```
-straight-line fit of your history (17 points, R^2 = 1.000):
-  seconds per embedding = 0.761 s fixed  +  0.173 s x tokens
+straight-line fit of your history (7 points, R^2 = 1.000):
+  seconds per embedding = 0.515 s fixed  +  0.173 s x tokens
 ```
 
 The fixed part is streaming the weights out of flash (the firmware's own stopwatch says
-0.742 s); the per-token part is the arithmetic (0.165 s) plus small extras like GELU. Two
+0.503 s); the per-token part is the arithmetic (0.165 s) plus small extras like GELU. Two
 independent measurements, the board's stopwatches and a line fitted from the outside, agree.
 `dist` runs the network twice, so the history works per embedding (time divided by the number
 of embeddings) to compare `embed` and `dist` calls fairly. The charts need a handful of calls
@@ -498,7 +499,7 @@ start-up mean "ready".
 How it stays out of the way: the blinking is done by its own FreeRTOS task, **pinned to core 1**
 while the neural network runs on core 0, and the task sleeps (using no CPU) until a *task
 notification* wakes it. Measured effect: the timings are unchanged (for example `hello world`
-1.45 s before and after) and it costs about 10 KB of internal RAM.
+1.45 s before and after, measured before QIO flash) and it costs about 10 KB of internal RAM.
 
 The code is in the shared component `common/components/board_led/` (`activity_led.c`, built on `board_led.c`). The pin and LED type are set in its `Kconfig`: GPIO48 and an addressable RGB LED by
 default. Most ESP32-S3 dev boards use GPIO48 (some older ones GPIO38). If yours does not light up,
@@ -551,12 +552,12 @@ scripts wait for the board's `READY` message first, then ask `ident`.
 
 | Sentence | Tokens | cos(board, numpy) | Time |
 |---|---|---|---|
-| hello world | 4 | 1.000000 | 1.42 s |
-| a cat sat on the mat | 8 | 1.000000 | 2.10 s |
-| stock markets fell sharply today | 7 | 1.000001 | 1.93 s |
-| how do i reset my password? | 9 | 1.000000 | 2.28 s |
-| the quick brown fox jumps over the lazy dog | 11 | 1.000000 | 2.63 s |
-| (a long sentence, cut to the limit) | 16 | 1.000000 | 3.50 s |
+| hello world | 4 | 1.000000 | 1.21 s |
+| a cat sat on the mat | 8 | 1.000000 | 1.90 s |
+| stock markets fell sharply today | 7 | 1.000001 | 1.73 s |
+| how do i reset my password? | 9 | 1.000000 | 2.07 s |
+| the quick brown fox jumps over the lazy dog | 11 | 1.000000 | 2.42 s |
+| (a long sentence, cut to the limit) | 16 | 1.000000 | 3.29 s |
 
 The C implementation reproduces the numpy one to six decimal places. Any remaining
 difference from the original model comes from quantisation and pruning, not from bugs.
@@ -567,13 +568,13 @@ After every `embed` and `dist`, the REPL prints a breakdown measured by stopwatc
 the firmware (`TIMED()` and `bert_timing_t` in `bert.c` / `bert.h`):
 
 ```
-timing: round trip 1.79 s = inference 1.45 s (81%) + serial/other 0.34 s (19%)
-where the 1.45 s went:
-  arithmetic: multiply-adds      0.659 s  45.4%  █████████████
-  weight fetch: flash -> float   0.742 s  51.1%  ██████████████
+timing: round trip 1.55 s = inference 1.21 s (78%) + serial/other 0.34 s (22%)
+where the 1.21 s went:
+  arithmetic: multiply-adds      0.657 s  54.3%  ███████████████
+  weight fetch: flash -> float   0.503 s  41.6%  ████████████
   attention (tokens mixing)      0.004 s   0.3%
-  layer norm                     0.005 s   0.3%
-  GELU activation                0.041 s   2.8%  █
+  layer norm                     0.004 s   0.3%
+  GELU activation                0.041 s   3.4%  █
   ...
 ```
 
@@ -585,23 +586,24 @@ numbers over a 115200 baud link.
 
 | Phase | 4 tokens ("hello world") | 16 tokens |
 |---|---|---|
-| Arithmetic (multiply-adds) | 0.659 s (45%) | 2.552 s (72%) |
-| Weight fetch (flash to float) | 0.742 s (51%) | 0.742 s (21%) |
-| GELU | 0.041 s (3%) | 0.159 s (5%) |
-| Attention | 0.004 s (0.3%) | 0.063 s (1.8%) |
+| Arithmetic (multiply-adds) | 0.657 s (54%) | 2.549 s (77%) |
+| Weight fetch (flash to float) | 0.503 s (42%) | 0.503 s (15%) |
+| GELU | 0.041 s (3%) | 0.162 s (5%) |
+| Attention | 0.004 s (0.3%) | 0.063 s (1.9%) |
 | Everything else | under 0.01 s | under 0.02 s |
-| **Total** | **1.45 s** | **3.53 s** |
+| **Total** | **1.21 s** | **3.29 s** |
 
 **What this teaches**
 
-* **Weight fetch is a fixed cost: 0.742 s, whatever the length.** Each weight row is read
-  from flash once and reused for every token (the loop order in `linear()`). It is also
-  exactly what the benchmark predicted: about 10.8 MB of weights at 14.5 MB/s is 0.74 s.
-* **Arithmetic grows with the number of tokens**: 0.659 s at 4 tokens, 2.552 s at 16, almost
+* **Weight fetch is a fixed cost: 0.503 s, whatever the length.** Each weight row is read
+  from flash once and reused for every token (the loop order in `linear()`). That is about
+  10.6 MB of weights at 21 MB/s. Flash is read in QIO mode (4 data lines); in the default DIO
+  mode (2 lines) the same fetch took 0.742 s.
+* **Arithmetic grows with the number of tokens**: 0.657 s at 4 tokens, 2.549 s at 16, almost
   exactly 4 times as much. That is 0.165 s per token, about 64 million multiply-adds per
   second.
 * **So short texts are limited by flash, long texts by the CPU.** At 4 tokens fetching is
-  51% of the time; at 16 tokens it is 21%. Different bottlenecks need different fixes:
+  42% of the time; at 16 tokens it is 15%. Different bottlenecks need different fixes:
   the second core and SIMD instructions help arithmetic, while faster flash settings or
   keeping weights in RAM help the fetch.
 * **Attention is almost free** (under 2%). It is the part of a transformer people talk about
@@ -609,7 +611,7 @@ numbers over a 115200 baud link.
   Attention cost grows with the square of the length, so it would matter more for long text.
 * **GELU is surprisingly costly (3 to 5%)** for such a small job, because each `erff()` call
   takes roughly 250 CPU cycles. A cheaper approximation would save most of it.
-* **`dist` doubles everything.** It embeds two texts; the weight fetch (1.48 s) is twice a
+* **`dist` doubles everything.** It embeds two texts; the weight fetch (1.01 s) is twice a
   single embedding, because the weights are fetched again for the second text.
 
 **How trustworthy are the numbers?** The stopwatches read the clock once per function call,
@@ -627,7 +629,7 @@ flash read, and these cannot be separated without a finer stopwatch.
 * **16 tokens maximum**, including `[CLS]` and `[SEP]`, so about 14 word pieces. Longer text
   is silently cut. (Raise `MAX_TOKENS` and put the buffers in PSRAM to go longer.)
 * **ASCII, English only.** Accents and other scripts are dropped.
-* **Slow**: 1.5 to 3.5 s per text, on one core of two, without SIMD.
+* **Slow**: 1.2 to 3.3 s per text, on one core of two, without SIMD.
 * **Serial speed**: printing 384 numbers over 115200 baud adds a noticeable fraction of a
   second to `embed`.
 * The tokenizer does not strip accents or handle special tokens typed in the text.
@@ -663,7 +665,7 @@ A 30-minute talk. Each bullet is a slide; the **demo** points use the REPL.
 3. **Why MiniLM-L6?** BERT family, 22.7 M parameters, built for sentences. BERT-base is
    110 M and would not fit.
 4. **The chip.** ESP32-S3: 2 cores at 240 MHz, 512 KB RAM, 8 MB PSRAM, 16 MB flash. Show the
-   benchmark: internal RAM 292 MB/s, PSRAM 32 MB/s, flash 14.5 MB/s. *Memory speed is the
+   benchmark: internal RAM 292 MB/s, PSRAM 32 MB/s, flash 14.5 MB/s in DIO mode (about 25 MB/s in QIO, measured with `matbench`). *Memory speed is the
    story.*
 5. **The pipeline.** Tokenise, embed, 6 layers, mean pool, normalise (the diagram from
    section 1).
@@ -678,8 +680,8 @@ A 30-minute talk. Each bullet is a slide; the **demo** points use the REPL.
 11. **Why BERT suits a microcontroller.** Every weight is read once and reused for every
     token. Show the `linear()` loop order.
 12. **Attention in one slide.** Tokens deciding who to listen to. Heads.
-13. **Results.** Exact match with numpy; 1.5 to 3.5 s per text; the measured time
-    breakdown (0.74 s fetching weights, a fixed cost, plus 0.165 s per token of arithmetic).
+13. **Results.** Exact match with numpy; 1.2 to 3.3 s per text; the measured time
+    breakdown (0.50 s fetching weights, a fixed cost, plus 0.165 s per token of arithmetic).
     Live demo: run `embed` on a short and a long text and watch the bottleneck move from
     flash to the CPU.
 14. **What I'd do next.** SIMD, second core, int4, SD card.

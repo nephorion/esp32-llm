@@ -174,7 +174,7 @@ esp_err_t bert_init(void)
  *      for each token t:  for each row j: ...     <- re-reads ALL of W for every token
  *      for each row j:    for each token t: ...   <- reads each row of W ONCE   (ours)
  *
- * W is ~1.8 MB per layer and lives in slow flash (14.5 MB/s). Re-reading it for
+ * W is ~1.8 MB per layer and lives in slow flash (about 25 MB/s). Re-reading it for
  * every token would multiply the flash traffic by T. Ours fetches row j from
  * flash a single time, then reuses it for all T tokens while it is in fast RAM.
  * This is exactly why BERT suits a microcontroller: weights are reused across

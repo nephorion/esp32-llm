@@ -13,7 +13,7 @@ minilm> dist After a long day she walked home through the quiet park | After a h
 SIM 0.5424  (somewhat related)
 DIST 0.4576
 tokens: 13 + 13
-timing: round trip 6.06 s = inference 6.02 s (99%) + serial/other 0.04 s (1%)
+timing: round trip 5.57 s = inference 5.53 s (99%) + serial/other 0.04 s (1%)
 ```
 
 It is also a **teaching project**. The C code is small (about 600 lines of code, 1,550 with its
@@ -29,7 +29,7 @@ on the real chip, with timing charts drawn in your terminal.
 - **Commands over serial:** `embed` (a 384-number vector), `dist` (similarity and distance of
   two texts), `tokens` (how text is split into word pieces) and `info`.
 - **A timing breakdown for every call:** how long the round trip took, how much of it was
-  inference, and which phase used the time. The weight fetch from flash costs a fixed 0.74 s
+  inference, and which phase used the time. The weight fetch from flash costs a fixed 0.50 s
   per embedding, and the arithmetic adds 0.17 s per token.
 - **A history of every call, with ASCII charts** drawn with plotext, plus a straight-line fit of
   time against text length (R² = 1.000). No board is needed to look at them.
@@ -51,7 +51,7 @@ shows how it fits:
 3. **Memory-map the weights** from a flash partition, so nothing is copied into RAM.
 4. **Stream** each weight row once and reuse it for every token.
 
-Embedding time turns out to be almost exactly `0.77 s + 0.17 s x tokens`. A fixed cost
+Embedding time turns out to be almost exactly `0.52 s + 0.17 s x tokens`. A fixed cost
 comes from reading the weights, and a per-token cost from the arithmetic. This is why short
 texts are limited by flash and long texts by the CPU.
 
@@ -99,7 +99,7 @@ itself is never overwritten.
 
 - Text is **English and ASCII only**, and is cut off at **16 tokens** (about 12 words).
 - The pruned vocabulary splits rare words into pieces and lowers accuracy for them.
-- Each embedding takes 1.3 to 3.5 s, so this is a learning tool, not a fast one.
+- Each embedding takes 1.0 to 3.3 s, so this is a learning tool, not a fast one.
 
 ## Licence
 

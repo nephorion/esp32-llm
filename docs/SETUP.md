@@ -18,6 +18,7 @@ C firmware (ESP-IDF) for an **ESP32-S3**, flashed over USB serial. Python (pyser
 | Debug       | JTAG not disabled in eFuse; USB serial/JTAG available on the native USB port |
 
 Notes:
+- Every project reads flash in **QIO** mode (`common/sdkconfig.common`). `make build` applies it; a plain `idf.py build` keeps the settings in an older `sdkconfig`.
 - Fuse-derived values come from `espefuse summary` and `esptool flash-id`. SRAM size and SIMD come from the ESP32-S3 datasheet, not from the chip query.
 - The PSRAM is **octal** (AP Memory, 64 Mbit, 40 MHz), confirmed by booting with `CONFIG_SPIRAM_MODE_OCT=y` in `projects/bench/sdkconfig.defaults`. The eFuses alone don't say.
 - Boot reports about 386 KB of internal heap free and 8 MB of PSRAM free.
@@ -130,6 +131,7 @@ Only one program can hold the port at a time, so close `make monitor` first.
 | No `/dev/tty*` device appears     | Charge-only cable, or `brltty` is installed.                        |
 | `Failed to connect` / timeout     | Enter the bootloader manually (BOOT + RESET).                       |
 | `Device busy`                     | Another program has the port open.                                  |
+| Board will not boot after a flash | Its flash may not support QIO: remove that line from `common/sdkconfig.common`, then `make build flash`. |
 | `idf.py: command not found`       | Run `. ~/esp/esp-idf/export.sh` in this shell.                      |
 
 ## Repository layout

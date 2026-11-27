@@ -23,7 +23,7 @@
  * the flash chip, through a small cache.
  *
  *     RAM-resident data:   fast (292 MB/s measured),   tiny   (~390 KB)
- *     Flash-mapped data:   slow (14.5 MB/s measured),  large  (15 MB)
+ *     Flash-mapped data:   slow (about 25 MB/s, QIO),  large  (15 MB)
  *
  * Every pointer in the structures below points INTO FLASH, not into RAM. The
  * structures themselves are only a few hundred bytes of pointers.
