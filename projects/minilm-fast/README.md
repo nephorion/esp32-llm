@@ -57,7 +57,7 @@ The sentences are a small hand-written set, not a standard similarity benchmark.
 
 - **SIMD is the largest win.** It needs int8 activations, so answers move slightly.
 - **The second core helps without changing answers:** 1.7x on long texts with the float kernel.
-- **A faster int8 to float loop gains little** (0.503 to 0.450 s of fetch). The fetch is now
+- **A faster int8 to float loop gains little** (0.503 to about 0.45 s of fetch). The fetch is now
   close to what the flash can deliver (`bench` reads it at 24.4 MB/s).
 - With 2 cores, "weight fetch" and "arithmetic" are approximate: both cores work at once, and
   the longer of their two fetch times is reported.

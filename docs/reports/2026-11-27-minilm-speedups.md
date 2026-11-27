@@ -52,18 +52,20 @@ Times are local (+11:00), all on 2026-11-27.
 | QIO flash | weight fetch 0.743 s to 0.503 s | The flash chip must support it |
 
 In the kernel benchmark, int8 SIMD is about 32x plain C on matrix-vector in internal RAM (643
-million multiply-adds per second) and up to 45x on a long dot product. From flash it is held to
-about 25, because memory cannot feed it.
+million multiply-adds per second) and up to 45x on a long dot product. From flash, matrix-vector
+is held to about 25 million multiply-adds per second (only 1.7x plain C), because memory cannot
+feed it.
 
 Keeping the attention value matrix in float (`v=float`) improves cosine to 0.9988 (worst
-0.9966), for 0.824 s instead of 0.725 s on 2 cores.
+0.9966), for 0.824 s instead of 0.725 s on 2 cores. The closest sentence then matched for 38 of 40,
+against 40 of 40 with all int8.
 
 ### What did not help much
 
 | Tried | Result |
 |---|---|
 | Hand-written scalar assembly | No better than unrolled C |
-| Faster int8 to float loop | Fetch 0.503 s to 0.450 s only: flash speed is now the limit |
+| Faster int8 to float loop | Fetch 0.503 s to about 0.45 s only: flash speed is now the limit |
 | 4 of 6 layers in PSRAM (40 MHz) | Helped with DIO (fetch 0.743 to 0.597 s); slightly worse with QIO (0.517 vs 0.503 s) |
 | PSRAM at 80 MHz with QIO ¹ | Fetch 0.454 s with 4 layers in PSRAM, 0.487 s all in flash; not enabled |
 | Lossless compression of weights ¹ | Shrinks them only to about 90%, too little to pay for decoding |
@@ -92,7 +94,7 @@ Keeping the attention value matrix in float (`v=float`) improves cosine to 0.998
 - The SIMD loop reaches 3.8 multiply-adds per cycle on a long dot product; its instruction
   order could be improved.
 - Finer activation scales (per 32 values) looked much more accurate in simulation (cosine
-  0.9997) but their speed cost is unmeasured.
+  0.9997 ¹) but their speed cost is unmeasured.
 - Not tried: a larger data cache, or PSRAM at 80 MHz in `matbench` and `minilm-fast`.
 
 ## How to reproduce
@@ -104,7 +106,11 @@ The model must be in flash (`make model flash-model` in `projects/minilm`).
 make p=minilm-fast build flash && make p=minilm-fast run     # switches: speed and accuracy
 make p=matbench build flash && make p=matbench run           # kernels
 make p=bench build flash && make p=bench run                 # raw memory speeds
+make p=minilm-psram build flash && make p=minilm-psram run   # layers in PSRAM
 ```
+
+For the DIO starting point, remove `CONFIG_ESPTOOLPY_FLASHMODE_QIO=y` from
+`common/sdkconfig.common`, then `make build flash` again.
 
 Data behind the numbers:
 

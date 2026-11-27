@@ -33,7 +33,10 @@ CONFIGS = [   # name, switches
     ("simd, v float",       "fetch=fast kernel=simd cores=1 v=float"),
     ("simd, v float, 2 cores", "fetch=fast kernel=simd cores=2 v=float"),
 ]
-ACCURACY = ["fast fetch", "simd", "simd, v float"]    # cores do not change the answers (checked)
+ACCURACY = ["fast fetch", "simd", "simd, v float"]
+# A second core must not change any answer: (two cores, the same on one core).
+CORE_PAIRS = [("2 cores", "original"), ("fast fetch, 2 cores", "fast fetch"),
+              ("simd, 2 cores", "simd"), ("simd, v float, 2 cores", "simd, v float")]
 TIMED_TEXTS = ["hello",
                "a cat sat on the mat",
                "after a long day she walked home through the quiet park and then went to bed early"]
@@ -130,25 +133,18 @@ def main():
                                    arithmetic_s=round(best["dot"], 4)))
             print(f"timed: {name}", flush=True)
 
-        # A second core must not change any answer.
-        for name, _ in CONFIGS:
-            if name.endswith("2 cores"):
-                one = name.removesuffix(", 2 cores") if name != "2 cores" else "original"
-                for text in TIMED_TEXTS:
-                    a, b = vector(answers[name, text]), vector(answers[one, text])
-                    # "2 cores" alone uses a different float kernel from the original, so
-                    # only its last printed digit may differ.
-                    if name == "2 cores":
-                        if np.abs(a - b).max() > 5e-6:
-                            mismatched.append(f"{name} differs from {one}")
-                    elif answers[name, text] != answers[one, text]:
-                        mismatched.append(f"{name} differs from {one}")
-
+        switches_of = dict(CONFIGS)
         vectors = {}
-        for name, switches in [CONFIGS[0]] + [c for c in CONFIGS if c[0] in ACCURACY]:
-            dev.command("mode " + switches)
+        for name in ["original", *ACCURACY, *(two for two, _ in CORE_PAIRS)]:
+            dev.command("mode " + switches_of[name])
             vectors[name] = np.stack([vector(embed(dev, s)) for s in SENTENCES])
             print(f"embedded {len(SENTENCES)} sentences: {name}", flush=True)
+        for two, one in CORE_PAIRS:
+            # "2 cores" alone uses a different float kernel from the original, so only
+            # its last printed digit may differ. The others must match exactly.
+            allowed = 5e-6 if one == "original" else 0
+            if np.abs(vectors[two] - vectors[one]).max() > allowed:
+                mismatched.append(f"{two} differs from {one}")
         dev.command("mode " + BASE)
     except (BoardError, TimeoutError) as e:
         sys.exit(f"error: {e}")
@@ -185,6 +181,8 @@ def main():
     print()
     save("speed", timing)
     save("accuracy", accuracy)
+    if not mismatched:
+        print(f"The second core changed no answers ({len(SENTENCES)} sentences).")
     if mismatched:
         sys.exit("error: " + "; ".join(sorted(set(mismatched))))
 

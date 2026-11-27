@@ -166,6 +166,10 @@ static int command(model_t *m, const char *line)
     bool f = fetch_fast, s = simd, vf = v_float;
     int c = cores;
     char args[96];
+    if (strlen(line + 4) >= sizeof args) {       /* never apply a silently shortened line */
+        printf("ERR mode line too long\n");
+        return -1;
+    }
     snprintf(args, sizeof args, "%s", line + 4);
     for (char *a = strtok(args, " "); a; a = strtok(NULL, " ")) {
         if      (!strcmp(a, "fetch=ref"))    f = false;
@@ -173,7 +177,10 @@ static int command(model_t *m, const char *line)
         else if (!strcmp(a, "kernel=float")) s = false;
         else if (!strcmp(a, "kernel=simd"))  s = true;
         else if (!strcmp(a, "cores=1"))      c = 1;
-        else if (!strcmp(a, "cores=2") && worker_ok) c = 2;
+        else if (!strcmp(a, "cores=2")) {
+            if (!worker_ok) { printf("ERR the second-core worker did not start\n"); return -1; }
+            c = 2;
+        }
         else if (!strcmp(a, "v=int8"))       vf = false;
         else if (!strcmp(a, "v=float"))      vf = true;
         else {
