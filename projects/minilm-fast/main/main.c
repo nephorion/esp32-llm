@@ -1,8 +1,9 @@
 /*
- * minilm-fast - MiniLM with switchable ways of doing the matrix multiply, to compare them.
+ * minilm-fast - MiniLM with switchable ways of doing the slow parts, to compare them.
  *
  * The program is the shared one (common/components/minilm_core). This file only replaces
- * linear(), through bert_set_linear(). Everything else (attention, GELU, norms) is unchanged.
+ * linear() and the GELU activation, through bert_set_linear() and bert_set_gelu().
+ * Attention and the norms are unchanged.
  *
  * Serial command:
  *   mode                      show the switches
@@ -17,11 +18,18 @@
  *     cores=1|2           2: core 1 computes the second half of each matrix's rows
  *     v=int8|float        simd only: float keeps the attention "value" matrix on the float
  *                         path, which loses less accuracy
+ *     gelu=exact|table|relu
+ *                         exact: erff(), as the original
+ *                         table: look the curve up in a table, with linear interpolation
+ *                         relu:  max(0, x), the crude extreme, for comparison
+ *     table=8..4096       number of table intervals (more = closer to exact)
+ *     gcores=1|2          2: core 1 computes half of the GELU values
  *
- * At start-up: fetch=ref kernel=float cores=1, which runs the original linear() untouched.
+ * At start-up: everything off (gelu=exact gcores=1), which runs the original code untouched.
  */
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -33,6 +41,17 @@
 
 static bool fetch_fast, simd, v_float;
 static int cores = 1;
+
+/* GELU. gelu(x) = max(x, 0) - c(|x|), where c(a) = a * (1 - erf(a / sqrt 2)) / 2. The
+ * correction c is the same for x and -x and fades to nothing, so only 0..GELU_RANGE needs
+ * a table; beyond it gelu(x) is simply max(x, 0). */
+typedef enum { GELU_EXACT, GELU_TABLE, GELU_RELU } gelu_t;
+static const char *GELU_NAME[] = { "exact", "table", "relu" };
+#define GELU_RANGE 5.0f                       /* c(5) is about 0.0000014 */
+#define TABLE_MAX  4096
+static gelu_t gelu_mode = GELU_EXACT;
+static int table_n = 256, gcores = 1;
+static float correction[TABLE_MAX + 2];       /* one extra entry for the interpolation */
 static const model_t *model;
 
 /* One matrix multiply, shared by both cores. */
@@ -45,6 +64,9 @@ typedef struct {
 } job_t;
 
 static job_t job;
+static float *gelu_vec;                        /* the GELU job, when that is what is running */
+static size_t gelu_len;
+static bool worker_does_gelu;
 static int64_t worker_fetch_us;
 static SemaphoreHandle_t go, done;
 static bool worker_ok;
@@ -100,12 +122,55 @@ static int64_t run_rows(int first, int last, int slot)
     return fetch_us;
 }
 
+static void build_table(void)
+{
+    for (int i = 0; i <= table_n + 1; i++) {
+        float a = GELU_RANGE * i / table_n;
+        correction[i] = 0.5f * a * erfcf(a * 0.70710678f);
+    }
+}
+
+static void gelu_range(float *v, size_t n)
+{
+    if (gelu_mode == GELU_TABLE) {
+        const float per_unit = table_n / GELU_RANGE;
+        for (size_t i = 0; i < n; i++) {
+            float x = v[i], a = fabsf(x), c = 0;
+            if (a < GELU_RANGE) {
+                float pos = a * per_unit;
+                int k = (int)pos;
+                c = correction[k] + (pos - k) * (correction[k + 1] - correction[k]);
+            }
+            v[i] = (x > 0 ? x : 0) - c;
+        }
+    } else if (gelu_mode == GELU_RELU) {
+        for (size_t i = 0; i < n; i++) v[i] = v[i] > 0 ? v[i] : 0;
+    } else {                                   /* exact: the same expression as bert.c */
+        for (size_t i = 0; i < n; i++) v[i] = 0.5f * v[i] * (1.0f + erff(v[i] * 0.70710678f));
+    }
+}
+
 static void worker(void *arg)
 {
     for (;;) {
         xSemaphoreTake(go, portMAX_DELAY);
-        worker_fetch_us = run_rows(job.out_dim / 2, job.out_dim, 1);
+        if (worker_does_gelu) gelu_range(gelu_vec + gelu_len / 2, gelu_len - gelu_len / 2);
+        else worker_fetch_us = run_rows(job.out_dim / 2, job.out_dim, 1);
         xSemaphoreGive(done);
+    }
+}
+
+static void fast_gelu(float *v, size_t n)
+{
+    if (gcores == 2) {
+        gelu_vec = v;
+        gelu_len = n;
+        worker_does_gelu = true;
+        xSemaphoreGive(go);
+        gelu_range(v, n / 2);
+        xSemaphoreTake(done, portMAX_DELAY);
+    } else {
+        gelu_range(v, n);
     }
 }
 
@@ -143,6 +208,7 @@ static int64_t fast_linear(const qmat_t *W, const float *bias, const float *in, 
     job = (job_t){ W, bias, in, out, T, in_dim, out_dim, use_simd, fetch_fast || simd };
 
     if (cores == 2) {
+        worker_does_gelu = false;
         xSemaphoreGive(go);
         int64_t mine = run_rows(0, out_dim / 2, 0);
         xSemaphoreTake(done, portMAX_DELAY);
@@ -154,8 +220,9 @@ static int64_t fast_linear(const qmat_t *W, const float *bias, const float *in, 
 
 static void show(void)
 {
-    printf("MODE fetch=%s kernel=%s cores=%d v=%s\n", fetch_fast ? "fast" : "ref",
-           simd ? "simd" : "float", cores, v_float ? "float" : "int8");
+    printf("MODE fetch=%s kernel=%s cores=%d v=%s gelu=%s table=%d gcores=%d\n",
+           fetch_fast ? "fast" : "ref", simd ? "simd" : "float", cores,
+           v_float ? "float" : "int8", GELU_NAME[gelu_mode], table_n, gcores);
 }
 
 static int command(model_t *m, const char *line)
@@ -164,7 +231,8 @@ static int command(model_t *m, const char *line)
 
     /* Read all the settings before applying any, so a typo changes nothing. */
     bool f = fetch_fast, s = simd, vf = v_float;
-    int c = cores;
+    int c = cores, gc = gcores, tn = table_n;
+    gelu_t g = gelu_mode;
     char args[96];
     if (strlen(line + 4) >= sizeof args) {       /* never apply a silently shortened line */
         printf("ERR mode line too long\n");
@@ -183,12 +251,33 @@ static int command(model_t *m, const char *line)
         }
         else if (!strcmp(a, "v=int8"))       vf = false;
         else if (!strcmp(a, "v=float"))      vf = true;
+        else if (!strcmp(a, "gelu=exact"))   g = GELU_EXACT;
+        else if (!strcmp(a, "gelu=table"))   g = GELU_TABLE;
+        else if (!strcmp(a, "gelu=relu"))    g = GELU_RELU;
+        else if (!strcmp(a, "gcores=1"))     gc = 1;
+        else if (!strcmp(a, "gcores=2")) {
+            if (!worker_ok) { printf("ERR the second-core worker did not start\n"); return -1; }
+            gc = 2;
+        }
+        else if (!strncmp(a, "table=", 6)) {
+            char *end;
+            long n = strtol(a + 6, &end, 10);
+            if (end == a + 6 || *end || n < 8 || n > TABLE_MAX) {
+                printf("ERR table must be 8..%d\n", TABLE_MAX);
+                return -1;
+            }
+            tn = (int)n;
+        }
         else {
-            printf("ERR usage: mode [fetch=ref|fast] [kernel=float|simd] [cores=1|2] [v=int8|float]\n");
+            printf("ERR usage: mode [fetch=ref|fast] [kernel=float|simd] [cores=1|2] [v=int8|float] "
+                   "[gelu=exact|table|relu] [table=N] [gcores=1|2]\n");
             return -1;
         }
     }
     fetch_fast = f; simd = s; cores = c; v_float = vf;
+    gelu_mode = g; gcores = gc;
+    if (tn != table_n) { table_n = tn; build_table(); }
+    bert_set_gelu(gelu_mode != GELU_EXACT || gcores == 2 ? fast_gelu : NULL);
     /* With nothing switched on, use the original linear() itself. */
     bert_set_linear(fetch_fast || simd || cores == 2 ? fast_linear : NULL);
     show();
@@ -198,6 +287,7 @@ static int command(model_t *m, const char *line)
 static void model_ready(model_t *m)
 {
     model = m;
+    build_table();
     go = xSemaphoreCreateBinary();
     done = xSemaphoreCreateBinary();
     /* Priority above the LED blinker (1), which also lives on core 1. */

@@ -22,7 +22,8 @@ from esp32tools import BoardError, FlashError, Mismatch, Requirement, connect  #
 
 REQUIREMENT = Requirement(project="minilm-fast", proto=minilm.PROTO_VERSION, project_dir=HERE,
                           data=minilm.REQUIREMENT.data)
-BASE = "fetch=ref kernel=float cores=1 v=int8"
+GELU_OFF = " gelu=exact table=256 gcores=1"
+BASE = "fetch=ref kernel=float cores=1 v=int8" + GELU_OFF
 CONFIGS = [   # name, switches
     ("original",            BASE),
     ("fast fetch",          "fetch=fast kernel=float cores=1 v=int8"),
@@ -118,7 +119,7 @@ def main():
     timing, accuracy, answers, mismatched = [], [], {}, []
     try:
         for name, switches in CONFIGS:
-            dev.command("mode " + switches)
+            dev.command("mode " + switches + GELU_OFF)
             for text in TIMED_TEXTS:
                 tokens = len(dev.tokens(text))
                 runs = []
@@ -136,7 +137,7 @@ def main():
         switches_of = dict(CONFIGS)
         vectors = {}
         for name in ["original", *ACCURACY, *(two for two, _ in CORE_PAIRS)]:
-            dev.command("mode " + switches_of[name])
+            dev.command("mode " + switches_of[name] + GELU_OFF)
             vectors[name] = np.stack([vector(embed(dev, s)) for s in SENTENCES])
             print(f"embedded {len(SENTENCES)} sentences: {name}", flush=True)
         for two, one in CORE_PAIRS:
