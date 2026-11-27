@@ -68,6 +68,13 @@ typedef struct {
     int64_t pool_us;         /* averaging the token vectors and scaling to length 1       */
 } bert_timing_t;
 
+/* A project may replace the matrix multiply (out = in x W^T + bias, same arguments as
+ * linear() in bert.c). It returns the microseconds it spent fetching weights, for the
+ * timing report. NULL (the default) uses linear(). */
+typedef int64_t (*bert_linear_fn)(const qmat_t *W, const float *bias, const float *in, float *out,
+                                  int T, int in_dim, int out_dim);
+void bert_set_linear(bert_linear_fn fn);
+
 void bert_timing_reset(void);
 const bert_timing_t *bert_timing_get(void);
 

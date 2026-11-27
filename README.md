@@ -81,6 +81,7 @@ could share lives in `common/`.
 |---|---|
 | [`projects/minilm/`](projects/minilm/README.md) | **The main project**: MiniLM-L6 on the chip, with its Python tools and the tutorial |
 | [`projects/minilm-psram/`](projects/minilm-psram/README.md) | The same model with 4 layers' weights held in PSRAM, timed against flash |
+| [`projects/minilm-fast/`](projects/minilm-fast/README.md) | The same model with switchable SIMD, second core and faster weight fetch (up to 4.5x faster) |
 | `projects/bench/` | Memory and GPIO speed benchmark (results in `projects/bench/results/`) |
 | [`projects/matbench/`](projects/matbench/README.md) | Matrix kernels timed on the chip: C against assembly and SIMD |
 | `projects/led/` | LED on/off over serial, the first example |

@@ -1,0 +1,9 @@
+# The same flash layout and settings as projects/minilm, so that the only differences are
+# the switchable code paths in main/main.c. (partitions.csv is a copy and must stay
+# identical, because both projects use the one model in flash.)
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_ESP_TASK_WDT_EN=n
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192

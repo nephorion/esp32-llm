@@ -1,0 +1,4 @@
+config,cos_mean,cos_min,sim_shift_mean,sim_shift_max,same_nearest,sentences
+fast fetch,1.0,1.0,0.0,0.0,40,40
+simd,0.99697,0.99171,0.0055,0.02969,40,40
+"simd, v float",0.99877,0.99662,0.0033,0.01569,38,40

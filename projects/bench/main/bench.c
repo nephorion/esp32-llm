@@ -99,12 +99,14 @@ static void bench_flash(void)
 {
     const esp_partition_t *part = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, NULL);
     if (!part) { printf("BENCH,flash,no_partition,0,0,\n"); return; }
-    size_t big = 1024 * 1024;
+    size_t big = part->size < 1024 * 1024 ? part->size : 1024 * 1024;   /* never map past the partition */
     const void *map; esp_partition_mmap_handle_t h;
     if (esp_partition_mmap(part, 0, big, ESP_PARTITION_MMAP_DATA, &map, &h) == ESP_OK) {
         sweep("flash_mmap", (void *)map, big, false);
         emit("flash_mmap", "read32", big, mbps(rd32, (void *)map, big, NULL, big), "MB/s");
         esp_partition_munmap(h);
+    } else {
+        printf("BENCH,flash_mmap,mmap_failed,%u,0,\n", (unsigned)big);
     }
     // Direct (uncached) reads into internal RAM
     size_t chunk = 64 * 1024;
