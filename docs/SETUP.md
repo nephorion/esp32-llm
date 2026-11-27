@@ -18,7 +18,7 @@ C firmware (ESP-IDF) for an **ESP32-S3**, flashed over USB serial. Python (pyser
 | Debug       | JTAG not disabled in eFuse; USB serial/JTAG available on the native USB port |
 
 Notes:
-- Every project reads flash in **QIO** mode (`common/sdkconfig.common`). `make build` applies it; a plain `idf.py build` keeps the settings in an older `sdkconfig`.
+- Every project reads flash in **QIO** mode (`common/sdkconfig.common`). `make build` applies it; a plain `idf.py build` or `make flash` keeps the settings in an older `sdkconfig`, so run `make build flash` once in each project after pulling a settings change. (The host tools' automatic rebuild regenerates it when a defaults file is newer.)
 - Fuse-derived values come from `espefuse summary` and `esptool flash-id`. SRAM size and SIMD come from the ESP32-S3 datasheet, not from the chip query.
 - The PSRAM is **octal** (AP Memory, 64 Mbit, 40 MHz), confirmed by booting with `CONFIG_SPIRAM_MODE_OCT=y` in `projects/bench/sdkconfig.defaults`. The eFuses alone don't say.
 - Boot reports about 386 KB of internal heap free and 8 MB of PSRAM free.

@@ -34,6 +34,6 @@ The weight fetch goes from 0.503 s to 0.517 s, and copying adds 0.65 s to start-
 Before QIO, with flash in DIO mode (`results/psram_20261127_193333.csv`), the same 4 layers cut
 the fetch from 0.743 s to 0.597 s (1.04x to 1.13x faster embeddings).
 
-In a separate trial, PSRAM at 80 MHz **with** QIO brought the fetch to 0.454 s with 4 layers
+In a one-off trial (console output only, no results file), PSRAM at 80 MHz **with** QIO brought the fetch to 0.454 s with 4 layers
 (0.487 s all in flash). That setting is not enabled here. A likely limit in all these cases is
 the byte-by-byte int8 to float loop, which has not been measured on its own.

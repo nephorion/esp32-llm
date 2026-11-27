@@ -40,7 +40,7 @@ esp_err_t bert_init(void);
  *   out       caller-provided array of HIDDEN (384) floats; receives the result
  *   n_tokens  optional (may be NULL): receives how many tokens were used
  *
- * Takes roughly 1 to 3.5 seconds depending on the text length. NOT thread-safe:
+ * Takes roughly 1 to 3.3 seconds depending on the text length. NOT thread-safe:
  * it uses shared static buffers, so call it from one task at a time. */
 esp_err_t bert_embed(const model_t *m, const char *text, float *out, int *n_tokens);
 

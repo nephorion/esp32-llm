@@ -546,6 +546,9 @@ scripts wait for the board's `READY` message first, then ask `ident`.
 
 ## 9. Results
 
+Timings here were read from the board's own output with QIO flash; they are not saved as files in
+the repository. `make validate` and the commands below reproduce them.
+
 ### Accuracy on the board
 
 `make validate` compares the board against numpy on the same `model.bin`:
@@ -597,7 +600,8 @@ numbers over a 115200 baud link.
 
 * **Weight fetch is a fixed cost: 0.503 s, whatever the length.** Each weight row is read
   from flash once and reused for every token (the loop order in `linear()`). That is about
-  10.6 MB of weights at 21 MB/s. Flash is read in QIO mode (4 data lines); in the default DIO
+  10.6 million bytes of weights at an effective 21 million per second, which includes
+  the int8-to-float conversion and so is a little below the raw flash speed. Flash is read in QIO mode (4 data lines); in the default DIO
   mode (2 lines) the same fetch took 0.742 s.
 * **Arithmetic grows with the number of tokens**: 0.657 s at 4 tokens, 2.549 s at 16, almost
   exactly 4 times as much. That is 0.165 s per token, about 64 million multiply-adds per
@@ -665,7 +669,7 @@ A 30-minute talk. Each bullet is a slide; the **demo** points use the REPL.
 3. **Why MiniLM-L6?** BERT family, 22.7 M parameters, built for sentences. BERT-base is
    110 M and would not fit.
 4. **The chip.** ESP32-S3: 2 cores at 240 MHz, 512 KB RAM, 8 MB PSRAM, 16 MB flash. Show the
-   benchmark: internal RAM 292 MB/s, PSRAM 32 MB/s, flash 14.5 MB/s in DIO mode (about 25 MB/s in QIO, measured with `matbench`). *Memory speed is the
+   benchmark: internal RAM 292 MB/s, PSRAM 32 MB/s, flash 14.5 MB/s in DIO mode (about 24 MB/s in QIO, from `matbench`). *Memory speed is the
    story.*
 5. **The pipeline.** Tokenise, embed, 6 layers, mean pool, normalise (the diagram from
    section 1).
