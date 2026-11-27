@@ -108,6 +108,10 @@ static int64_t lin_fetch_us;             /* ...of which: fetching weights   */
         tm.field += esp_timer_get_time() - _t0;                     \
     } while (0)
 
+static bert_linear_fn custom_linear;     /* a project's replacement for linear(), or NULL */
+
+void bert_set_linear(bert_linear_fn fn) { custom_linear = fn; }
+
 void bert_timing_reset(void)
 {
     memset(&tm, 0, sizeof tm);
@@ -396,7 +400,9 @@ static void encoder_layer(const layer_t *L, int T)
     /* Stopwatch helper for linear(): adds to the "all of linear()" total. The
      * fetch-vs-arithmetic split is worked out inside linear() and in
      * bert_timing_get(). */
-#define LINEAR(...) do { int64_t _l = esp_timer_get_time(); linear(__VA_ARGS__); \
+#define LINEAR(...) do { int64_t _l = esp_timer_get_time();                         \
+                         if (custom_linear) lin_fetch_us += custom_linear(__VA_ARGS__); \
+                         else linear(__VA_ARGS__);                                     \
                          lin_total_us += esp_timer_get_time() - _l; } while (0)
 
     /* ---- Block 1: self-attention ---------------------------------------- */

@@ -1,0 +1,9 @@
+# Flash layout for the 16 MB ESP32-S3.
+# The model gets almost everything: 0xF70000 bytes = 15.4 MiB. The firmware itself
+# is small (~250 KB) so a 512 KB app partition is plenty.
+#
+# Name,     Type, SubType, Offset,   Size
+nvs,        data, nvs,     0x9000,   0x6000
+phy_init,   data, phy,     0xf000,   0x1000
+factory,    app,  factory, 0x10000,  0x80000
+model,      data, 0x40,    0x90000,  0xF70000
