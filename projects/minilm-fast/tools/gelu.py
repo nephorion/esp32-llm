@@ -26,6 +26,14 @@ FAST = "fetch=fast kernel=simd cores=2 v=int8"
 FLOAT = "fetch=fast kernel=float cores=2 v=int8"
 
 
+def table_size(text):
+    """The firmware's limits, checked here so a typo cannot waste a long run."""
+    n = int(text)
+    if not 8 <= n <= 4096:
+        raise argparse.ArgumentTypeError("table size must be 8..4096")
+    return n
+
+
 def unit(m):
     return m / np.linalg.norm(m, axis=1, keepdims=True)
 
@@ -33,7 +41,7 @@ def unit(m):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("port", nargs="?", default="/dev/ttyACM0")
-    ap.add_argument("--tables", type=int, nargs="+", default=[8, 16, 64, 256, 1024], help="table sizes to try")
+    ap.add_argument("--tables", type=table_size, nargs="+", default=[8, 16, 64, 256, 1024], help="table sizes to try")
     ap.add_argument("--yes", action="store_true", help="write the firmware/model without asking if needed")
     ap.add_argument("--no-flash", action="store_true", help="never write; report a mismatch and stop")
     args = ap.parse_args()

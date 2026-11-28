@@ -89,4 +89,4 @@ code on the same 40 sentences, from `results/gelu_20261127_221914.csv`.
 - With 2 cores, "weight fetch" and "arithmetic" are approximate: both cores work at once, and
   the longer of their two fetch times is reported.
 - Attention and the norms still run in float on one core.
-- The extra buffers and task leave about 72 KB of internal RAM free (117 KB in `minilm`).
+- The extra buffers and task leave about 55 KB of internal RAM free (117 KB in `minilm`).

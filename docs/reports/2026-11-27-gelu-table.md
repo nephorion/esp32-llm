@@ -22,7 +22,7 @@ share):
 | Start | 3.538 s | |
 | QIO flash | 3.294 s | 1.07x |
 | int8 SIMD | 0.994 s | 3.31x |
-| Second core for the matrix multiplies | 0.727 s | 1.37x |
+| Second core for the matrix multiplies | 0.725 s | 1.37x |
 | GELU table on both cores | 0.570 s | 1.27x |
 
 The cost: cosine 0.9971 on average against the original float model (worst 0.9928), almost
