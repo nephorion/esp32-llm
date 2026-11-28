@@ -75,6 +75,10 @@ typedef int64_t (*bert_linear_fn)(const qmat_t *W, const float *bias, const floa
                                   int T, int in_dim, int out_dim);
 void bert_set_linear(bert_linear_fn fn);
 
+/* The same for the GELU activation (done in place over n values). NULL uses gelu(). */
+typedef void (*bert_gelu_fn)(float *vec, size_t n);
+void bert_set_gelu(bert_gelu_fn fn);
+
 void bert_timing_reset(void);
 const bert_timing_t *bert_timing_get(void);
 

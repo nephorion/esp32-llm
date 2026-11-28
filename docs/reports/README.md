@@ -6,6 +6,7 @@ one instead of rewriting an old one.
 
 | Date | Report |
 |---|---|
+| 2026-11-27 | [GELU table and total speed-up](2026-11-27-gelu-table.md): GELU 8x faster; 6.2x overall at 16 tokens |
 | 2026-11-27 | [MiniLM speed-ups](2026-11-27-minilm-speedups.md): from 3.54 s to 0.73 s per 16-token embedding |
 
 Each report has: **Summary**, **Changes** (date, commit, PR), **Where in the code**,

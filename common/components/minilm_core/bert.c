@@ -112,6 +112,10 @@ static bert_linear_fn custom_linear;     /* a project's replacement for linear()
 
 void bert_set_linear(bert_linear_fn fn) { custom_linear = fn; }
 
+static bert_gelu_fn custom_gelu;          /* a project's replacement for gelu(), or NULL */
+
+void bert_set_gelu(bert_gelu_fn fn) { custom_gelu = fn; }
+
 void bert_timing_reset(void)
 {
     memset(&tm, 0, sizeof tm);
@@ -423,7 +427,7 @@ static void encoder_layer(const layer_t *L, int T)
      * Widen 384 -> 1536 (room to compute many features), bend with GELU, then
      * narrow 1536 -> 384 back to the working size. */
     LINEAR(&L->f1, L->f1_b, x, ffn, T, HIDDEN, INTERMEDIATE);
-    TIMED(gelu_us, gelu(ffn, (size_t)T * INTERMEDIATE));
+    TIMED(gelu_us, (custom_gelu ? custom_gelu : gelu)(ffn, (size_t)T * INTERMEDIATE));
     LINEAR(&L->f2, L->f2_b, ffn, tmp, T, INTERMEDIATE, HIDDEN);
     TIMED(residual_us, for (int i = 0; i < T * HIDDEN; i++) x[i] += tmp[i]);   /* residual again */
     TIMED(layer_norm_us, layer_norm(x, T, L->out_g, L->out_b));

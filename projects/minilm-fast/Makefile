@@ -8,8 +8,12 @@ include ../../common/mk/esp.mk
 run:
 	$(PY) tools/compare.py $(PORT)
 
+# Tune the GELU switches: time and accuracy for each method and table size.
+gelu:
+	$(PY) tools/gelu.py $(PORT)
+
 # The model belongs to projects/minilm: these forward to it (the host tools suggest them).
 model flash-model:
 	$(MAKE) -C ../minilm $@ PORT=$(PORT)
 
-.PHONY: run model flash-model
+.PHONY: run gelu model flash-model
