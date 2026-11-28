@@ -20,6 +20,30 @@ It is also a **teaching project**. The C code is small (about 600 lines of code,
 comments) and heavily commented, and the tutorial README is written to be turned into a talk. Everything is measured
 on the real chip, with timing charts drawn in your terminal.
 
+## Status update: 2026-11-28
+
+**TL;DR: a 16-token embedding went from 3.54 s to 0.57 s on the board (6.2x faster)**, with
+answers still very close to the original float model (cosine 0.997 on average, 40 sentences).
+
+| Change, added in this order | Time after (16 tokens) |
+|---|---|
+| Starting point | 3.54 s |
+| QIO flash | 3.29 s |
+| int8 SIMD matrix maths | 0.99 s |
+| Second core for the matrix maths | 0.73 s |
+| GELU lookup table on both cores | 0.57 s |
+
+- **Where it applies:** QIO flash is on everywhere. The rest are switches in
+  [`minilm-fast`](projects/minilm-fast/README.md), off at start-up. `minilm` stays as the
+  baseline.
+- **To reuse:** the C and SIMD matrix kernels in `common/components/matmath`.
+- **Learned:** flash speed limits short texts. PSRAM at 40 MHz stopped helping once QIO was
+  on. Lossless compression was not worth it, and 4-bit weights lost too much accuracy in
+  simulation.
+- **Next to try:** PSRAM at 80 MHz, and attention on both cores.
+
+Details are in the [dated reports](docs/reports/README.md).
+
 ## What you get
 
 - **A working sentence-embedding model on a microcontroller.** It runs int8 weights, mapped
@@ -81,7 +105,7 @@ could share lives in `common/`.
 |---|---|
 | [`projects/minilm/`](projects/minilm/README.md) | **The main project**: MiniLM-L6 on the chip, with its Python tools and the tutorial |
 | [`projects/minilm-psram/`](projects/minilm-psram/README.md) | The same model with 4 layers' weights held in PSRAM, timed against flash |
-| [`projects/minilm-fast/`](projects/minilm-fast/README.md) | The same model with switchable SIMD, second core and faster weight fetch (up to 4.5x faster) |
+| [`projects/minilm-fast/`](projects/minilm-fast/README.md) | The same model with switchable SIMD, second core, faster weight fetch and a GELU table (up to 5.8x faster than `minilm`) |
 | `projects/bench/` | Memory and GPIO speed benchmark (results in `projects/bench/results/`) |
 | [`projects/matbench/`](projects/matbench/README.md) | Matrix kernels timed on the chip: C against assembly and SIMD |
 | `projects/led/` | LED on/off over serial, the first example |
