@@ -23,7 +23,11 @@ on the real chip, with timing charts drawn in your terminal.
 ## Status update: 2026-11-28
 
 **TL;DR: a 16-token embedding went from 3.54 s to 0.57 s on the board (6.2x faster)**, with
-answers still very close to the original float model (cosine 0.997 on average, 40 sentences).
+answers still close to those of the unmodified float code on the chip (cosine 0.997 on
+average, 0.993 worst, 40 sentences).
+
+The starting point is the first version, before QIO flash. `minilm` itself now takes 3.29 s,
+so `minilm-fast` is 5.8x faster than today's `minilm`.
 
 | Change, added in this order | Time after (16 tokens) |
 |---|---|
@@ -40,7 +44,8 @@ answers still very close to the original float model (cosine 0.997 on average, 4
 - **Learned:** flash speed limits short texts. PSRAM at 40 MHz stopped helping once QIO was
   on. Lossless compression was not worth it, and 4-bit weights lost too much accuracy in
   simulation.
-- **Next to try:** PSRAM at 80 MHz, and attention on both cores.
+- **Next to try:** PSRAM at 80 MHz in `minilm-fast` (only a one-off trial in `minilm-psram` so
+  far), and attention on both cores.
 
 Details are in the [dated reports](docs/reports/README.md).
 
@@ -125,7 +130,8 @@ itself is never overwritten.
 
 - Text is **English and ASCII only**, and is cut off at **16 tokens** (about 12 words).
 - The pruned vocabulary splits rare words into pieces and lowers accuracy for them.
-- Each embedding takes 1.0 to 3.3 s, so this is a learning tool, not a fast one.
+- In `minilm` each embedding takes 1.0 to 3.3 s (0.43 to 0.57 s in `minilm-fast` with every
+  switch on), so this is a learning tool, not a fast one.
 
 ## Licence
 
