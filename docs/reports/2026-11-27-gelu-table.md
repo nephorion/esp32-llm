@@ -32,9 +32,9 @@ start-up.
 
 ## Changes
 
-| Committed (2026-11-27, +11:00) | Commit | Change |
-|---|---|---|
-| 22:22 | `1c4d371` | GELU switches, `bert_set_gelu` hook, `tools/gelu.py` sweep |
+| Committed (2026-11-27, +11:00) | Commits | PR | Change |
+|---|---|---|---|
+| 22:22 | `1c4d371`, `688f39a` | [#8](https://github.com/nephorion/esp32-llm/pull/8) | GELU switches, `bert_set_gelu` hook, `tools/gelu.py` sweep; `compare.py` fix |
 
 ## Where in the code
 
